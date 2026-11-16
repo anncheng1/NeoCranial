@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NeoCranial USG – Neonatal Cranial Ultrasound</title>
+<meta name="description" content="Neonatal cranial ultrasound scanning guide, structured findings, interpretation and report generator.">
+<meta name="theme-color" content="#1a0f4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NeoCranial">
+<meta name="application-name" content="NeoCranial USG">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar no-print">
+  <div class="brand">
+    <img src="icons/icon-192.png" alt="" width="36" height="36" style="border-radius:9px">
+    <div>
+      <div class="brand-name">NeoCranial USG</div>
+      <div class="brand-sub">Neonatal Cranial Ultrasound</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="patientChip" class="chip"></span>
+    <button class="btn ghost sm" id="btnNew" title="Start a new case">New</button>
+    <button class="btn ghost sm" id="btnSettings" title="Settings">⚙</button>
+  </div>
+</header>
+
+<nav class="tabs no-print" role="tablist">
+  <button role="tab" data-tab="guide"><span class="n">1</span>Scanning guide</button>
+  <button role="tab" data-tab="findings" class="active"><span class="n">2</span>Findings</button>
+  <button role="tab" data-tab="interp"><span class="n">3</span>Interpretation</button>
+  <button role="tab" data-tab="report"><span class="n">4</span>Report</button>
+</nav>
+
+<main>
+<!-- ================= 1. SCANNING GUIDE ================= -->
+<section id="tab-guide" class="tab-panel no-print" hidden>
+  <div class="card intro">
+    <h2>Scanning guide</h2>
+    <p class="muted">Standard coronal and sagittal views through the anterior fontanelle, plus supplementary windows. Diagrams are simplified schematics. Coronal: patient's right on image left. Sagittal: anterior on image left.</p>
+    <div class="seg" id="guideFilter">
+      <button data-f="all" class="on">All</button>
+      <button data-f="coronal">Coronal</button>
+      <button data-f="sagittal">Sagittal</button>
+      <button data-f="supplementary">Supplementary</button>
+    </div>
+  </div>
+  <div id="guideGrid" class="guide-grid"></div>
+  <div class="card">
+    <h3>Technique tips</h3>
+    <ul id="guideTips" class="tips"></ul>
+  </div>
+  <div class="card">
+    <h3>Measurement definitions</h3>
+    <table class="tbl">
+      <tr><th>Measure</th><th>Plane</th><th>Definition</th></tr>
+      <tr><td>Ventricular index (VI, Levene)</td><td>Coronal, foramen of Monro</td><td>Falx (midline) to lateral wall of lateral ventricle, each side</td></tr>
+      <tr><td>Anterior horn width (AHW)</td><td>Coronal, same plane as VI</td><td>Diagonal width of frontal horn at its widest point</td></tr>
+      <tr><td>Thalamo-occipital distance (TOD)</td><td>Parasagittal</td><td>Outermost point of thalamus at its junction with choroid plexus to outermost tip of occipital horn</td></tr>
+      <tr><td>3rd ventricle width</td><td>Coronal C3</td><td>Transverse diameter (normal &lt; 3 mm)</td></tr>
+      <tr><td>Trans-cerebellar diameter (TCD)</td><td>Mastoid / posterior coronal</td><td>≈ GA (mm) up to 27 wk, then +2 mm/wk (≈ 50–55 mm at term)</td></tr>
+      <tr><td>Cisterna magna</td><td>Midline sagittal / PF</td><td>Normal 3–10 mm</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>References</h3>
+    <ol id="guideRefs" class="refs"></ol>
+  </div>
+</section>
+
+<!-- ================= 2. FINDINGS ================= -->
+<section id="tab-findings" class="tab-panel no-print">
+<form id="form" autocomplete="off" onsubmit="return false">
+
+  <details class="card sec" open>
+    <summary><h2>Patient details</h2></summary>
+    <div class="grid">
+      <label class="span2">Name<input data-k="name" type="text" placeholder="Baby of …"></label>
+      <label>MRN<input data-k="mrn" type="text"></label>
+      <label>Sex<select data-k="sex"><option value=""></option><option>Male</option><option>Female</option><option>Undetermined</option></select></label>
+      <label>Date of birth<input data-k="dob" type="date"></label>
+      <label>Scan date<input data-k="scanDate" type="date"></label>
+      <label>GA at birth (wk)<input data-k="gaW" type="number" min="22" max="44" step="1" inputmode="numeric"></label>
+      <label>+ days<input data-k="gaD" type="number" min="0" max="6" step="1" inputmode="numeric"></label>
+      <label>Birth weight (g)<input data-k="bw" type="number" min="300" max="6000" step="1" inputmode="numeric"></label>
+      <label>Scan no.<input data-k="scanNo" type="number" min="1" step="1" inputmode="numeric"></label>
+      <label>Location<select data-k="ward"><option>NICU</option><option>SCN</option><option>Paediatric ward</option><option>Clinic</option></select></label>
+    </div>
+    <div class="calc" id="ageCalc"></div>
+  </details>
+
+  <details class="card sec" open>
+    <summary><h2>Indication</h2></summary>
+    <div class="checks" id="indList"></div>
+    <label>Other / clinical notes<input data-k="indOther" type="text"></label>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Technique</h2></summary>
+    <div class="sub">Acoustic windows</div>
+    <div class="checks">
+      <label class="ck"><input type="checkbox" data-g="win" value="AF" checked> Anterior fontanelle</label>
+      <label class="ck"><input type="checkbox" data-g="win" value="PF"> Posterior fontanelle</label>
+      <label class="ck"><input type="checkbox" data-g="win" value="MF"> Mastoid fontanelle</label>
+      <label class="ck"><input type="checkbox" data-g="win" value="Doppler"> Doppler</label>
+    </div>
+    <div class="grid">
+      <label>Machine<input data-k="machine" type="text"></label>
+      <label>Probe<input data-k="probe" type="text" value="Microconvex 5–8 MHz"></label>
+      <label>Image quality<select data-k="quality"><option>Optimal</option><option>Adequate</option><option>Limited</option></select></label>
+      <label>Limitation (if any)<input data-k="qualityNote" type="text"></label>
+      <label>Comparison<select data-k="comparison"><option>First scan</option><option>Compared with previous</option></select></label>
+      <label>Previous scan date<input data-k="prevDate" type="date"></label>
+      <label>Interval change<select data-k="interval"><option value=""></option><option>Improved</option><option>Stable</option><option>Worse</option></select></label>
+    </div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Standard views obtained</h2></summary>
+    <div class="row-end"><button type="button" class="btn ghost sm" id="allViews">Select all</button></div>
+    <div class="sub">Coronal</div>
+    <div class="checks" id="corList"></div>
+    <div class="sub">Sagittal</div>
+    <div class="checks" id="sagList"></div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Brain anatomy</h2></summary>
+    <p class="muted small">First option in each list is normal. Change only what is abnormal.</p>
+    <div class="grid" id="anatList"></div>
+    <label>Anatomy notes<input data-k="anatNotes" type="text"></label>
+  </details>
+
+  <h2 class="sec-title">Abnormalities</h2>
+
+  <details class="card sec" open>
+    <summary><h2>Germinal matrix / intraventricular haemorrhage</h2></summary>
+    <div class="lr">
+      <fieldset><legend>Right</legend>
+        <label>Haemorrhage<select data-k="ivhR">
+          <option value="none">None</option>
+          <option value="gmh">Germinal matrix only (no / minimal IVH)</option>
+          <option value="ivh50">IVH ≤ 50% of ventricle</option>
+          <option value="ivh50plus">IVH &gt; 50% of ventricle</option>
+        </select></label>
+        <label class="ck"><input type="checkbox" data-k="vdR"> Acute ventricular distension</label>
+      </fieldset>
+      <fieldset><legend>Left</legend>
+        <label>Haemorrhage<select data-k="ivhL">
+          <option value="none">None</option>
+          <option value="gmh">Germinal matrix only (no / minimal IVH)</option>
+          <option value="ivh50">IVH ≤ 50% of ventricle</option>
+          <option value="ivh50plus">IVH &gt; 50% of ventricle</option>
+        </select></label>
+        <label class="ck"><input type="checkbox" data-k="vdL"> Acute ventricular distension</label>
+      </fieldset>
+    </div>
+    <label>Stage of haemorrhage<select data-k="ivhStage"><option value=""></option><option>Acute (echogenic)</option><option>Organising / retracting clot</option><option>Resolving</option><option>Resolved (germinolytic cyst / residual)</option></select></label>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Periventricular haemorrhagic infarction (PVHI)</h2></summary>
+    <div class="lr">
+      <fieldset><legend>Right</legend>
+        <label class="ck"><input type="checkbox" data-k="phiR"> PVHI present</label>
+        <label>Extent<select data-k="phiExtR"><option value=""></option><option>Localised (single region)</option><option>Extensive (≥ 2 regions)</option></select></label>
+        <div class="checks tight">
+          <label class="ck"><input type="checkbox" data-g="phiLocR" value="frontal"> Frontal</label>
+          <label class="ck"><input type="checkbox" data-g="phiLocR" value="parietal"> Parietal</label>
+          <label class="ck"><input type="checkbox" data-g="phiLocR" value="occipital"> Occipital</label>
+          <label class="ck"><input type="checkbox" data-g="phiLocR" value="temporal"> Temporal</label>
+        </div>
+      </fieldset>
+      <fieldset><legend>Left</legend>
+        <label class="ck"><input type="checkbox" data-k="phiL"> PVHI present</label>
+        <label>Extent<select data-k="phiExtL"><option value=""></option><option>Localised (single region)</option><option>Extensive (≥ 2 regions)</option></select></label>
+        <div class="checks tight">
+          <label class="ck"><input type="checkbox" data-g="phiLocL" value="frontal"> Frontal</label>
+          <label class="ck"><input type="checkbox" data-g="phiLocL" value="parietal"> Parietal</label>
+          <label class="ck"><input type="checkbox" data-g="phiLocL" value="occipital"> Occipital</label>
+          <label class="ck"><input type="checkbox" data-g="phiLocL" value="temporal"> Temporal</label>
+        </div>
+      </fieldset>
+    </div>
+    <label>Evolution<select data-k="phiEvo"><option value=""></option><option>Fan-shaped echodensity</option><option>Evolving cystic change</option><option>Porencephalic cyst communicating with ventricle</option></select></label>
+  </details>
+
+  <details class="card sec" open>
+    <summary><h2>Ventricular measurements (mm)</h2></summary>
+    <div class="meas-grid">
+      <div></div><div class="mh">Right</div><div class="mh">Left</div>
+      <div class="ml">VI</div><input data-k="viR" type="number" step="0.1" inputmode="decimal"><input data-k="viL" type="number" step="0.1" inputmode="decimal">
+      <div class="ml">AHW</div><input data-k="ahwR" type="number" step="0.1" inputmode="decimal"><input data-k="ahwL" type="number" step="0.1" inputmode="decimal">
+      <div class="ml">TOD</div><input data-k="todR" type="number" step="0.1" inputmode="decimal"><input data-k="todL" type="number" step="0.1" inputmode="decimal">
+    </div>
+    <div class="grid">
+      <label>3rd ventricle (mm)<input data-k="v3" type="number" step="0.1" inputmode="decimal"></label>
+      <label>Ventricular shape<select data-k="ventShape"><option value=""></option><option>Normal</option><option>Ballooned / rounded</option><option>Irregular (ex vacuo)</option></select></label>
+      <label>4th ventricle<select data-k="v4"><option>Normal</option><option>Dilated</option><option>Not assessed</option></select></label>
+      <label>Head circumference (cm)<input data-k="hc" type="number" step="0.1" inputmode="decimal"></label>
+    </div>
+    <div id="ventLive" class="live"></div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>White matter injury</h2></summary>
+    <div class="grid">
+      <label>Periventricular echogenicity<select data-k="pve">
+        <option value="none">None / normal</option>
+        <option value="lt">Present, less than choroid plexus</option>
+        <option value="eq">Equal to choroid plexus (homogeneous)</option>
+        <option value="gt">Greater than choroid or inhomogeneous</option>
+      </select></label>
+      <label>Duration of echogenicity (days)<input data-k="pveDays" type="number" min="0" step="1" inputmode="numeric"></label>
+      <label>Cystic change<select data-k="pvlCysts">
+        <option value="none">None</option>
+        <option value="localised">Small localised cysts (fronto-parietal)</option>
+        <option value="periventricular">Extensive periventricular cysts</option>
+        <option value="subcortical">Extensive cysts into subcortical WM</option>
+      </select></label>
+      <label>Side<select data-k="wmSide"><option>Bilateral</option><option>Right</option><option>Left</option></select></label>
+    </div>
+    <div class="checks tight">
+      <label class="ck"><input type="checkbox" data-g="wmLoc" value="frontal"> Frontal</label>
+      <label class="ck"><input type="checkbox" data-g="wmLoc" value="parietal"> Parietal</label>
+      <label class="ck"><input type="checkbox" data-g="wmLoc" value="occipital"> Occipital / peritrigonal</label>
+    </div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Cerebellum / posterior fossa</h2></summary>
+    <div class="grid">
+      <label>Cerebellar haemorrhage<select data-k="cbh">
+        <option value="none">None seen</option>
+        <option value="punctate">Punctate (&lt; 4 mm)</option>
+        <option value="limited">Limited (≥ 4 mm, &lt; 1/3 hemisphere)</option>
+        <option value="massive">Massive (≥ 1/3 hemisphere)</option>
+      </select></label>
+      <label>Location<select data-k="cbhSide"><option value=""></option><option>Right hemisphere</option><option>Left hemisphere</option><option>Bilateral</option><option>Vermis</option></select></label>
+      <label>TCD (mm)<input data-k="tcd" type="number" step="0.1" inputmode="decimal"></label>
+      <label>Cisterna magna (mm)<input data-k="cm" type="number" step="0.1" inputmode="decimal"></label>
+    </div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Cysts, echogenicity &amp; infarction</h2></summary>
+    <div class="sub">Cysts</div>
+    <div class="checks">
+      <label class="ck"><input type="checkbox" data-g="cysts" value="Choroid plexus cyst"> Choroid plexus cyst</label>
+      <label class="ck"><input type="checkbox" data-g="cysts" value="Subependymal (germinolytic) pseudocyst"> Subependymal / germinolytic pseudocyst</label>
+      <label class="ck"><input type="checkbox" data-g="cysts" value="Connatal (coarctation) cysts"> Connatal (coarctation) cysts</label>
+      <label class="ck"><input type="checkbox" data-g="cysts" value="Porencephalic cyst"> Porencephalic cyst</label>
+      <label class="ck"><input type="checkbox" data-g="cysts" value="Arachnoid cyst"> Arachnoid cyst</label>
+    </div>
+    <label>Cyst location / size<input data-k="cystNote" type="text"></label>
+    <div class="sub">Echogenicity</div>
+    <div class="checks">
+      <label class="ck"><input type="checkbox" data-g="echo" value="Increased thalamic / basal ganglia echogenicity"> Thalami / basal ganglia ↑</label>
+      <label class="ck"><input type="checkbox" data-g="echo" value="Diffusely increased parenchymal echogenicity (loss of grey-white differentiation)"> Diffuse parenchymal ↑ / loss of GWD</label>
+      <label class="ck"><input type="checkbox" data-g="echo" value="Lenticulostriate vasculopathy"> Lenticulostriate vasculopathy</label>
+      <label class="ck"><input type="checkbox" data-g="echo" value="Calcification"> Calcification</label>
+    </div>
+    <div class="sub">Infarction</div>
+    <div class="grid">
+      <label>Type<select data-k="infarct"><option value="">None</option><option>Arterial ischaemic stroke – MCA main branch</option><option>Arterial ischaemic stroke – cortical branch</option><option>Lenticulostriate (perforator) infarct</option><option>Watershed injury</option><option>Venous infarction / sinovenous thrombosis</option></select></label>
+      <label>Side<select data-k="infarctSide"><option value=""></option><option>Right</option><option>Left</option><option>Bilateral</option></select></label>
+    </div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Congenital abnormalities &amp; extra-axial</h2></summary>
+    <div class="checks">
+      <label class="ck"><input type="checkbox" data-g="cong" value="Agenesis / dysgenesis of corpus callosum"> Agenesis/dysgenesis of corpus callosum</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Holoprosencephaly"> Holoprosencephaly</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Dandy–Walker malformation"> Dandy–Walker malformation</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Vermian hypoplasia"> Vermian hypoplasia</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Chiari II malformation"> Chiari II malformation</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Schizencephaly"> Schizencephaly</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Abnormal gyration (lissencephaly / polymicrogyria spectrum)"> Abnormal gyration</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Congenital hydrocephalus (e.g. aqueductal stenosis)"> Congenital hydrocephalus</label>
+      <label class="ck"><input type="checkbox" data-g="cong" value="Vein of Galen malformation"> Vein of Galen malformation</label>
+    </div>
+    <label>Other congenital<input data-k="congOther" type="text"></label>
+    <div class="sub">Extra-axial</div>
+    <div class="checks">
+      <label class="ck"><input type="checkbox" data-g="extra" value="Subdural haemorrhage / collection"> Subdural collection</label>
+      <label class="ck"><input type="checkbox" data-g="extra" value="Subarachnoid haemorrhage"> Subarachnoid haemorrhage</label>
+      <label class="ck"><input type="checkbox" data-g="extra" value="Enlarged extra-axial space"> Enlarged extra-axial space</label>
+    </div>
+  </details>
+
+  <details class="card sec">
+    <summary><h2>Doppler (optional)</h2></summary>
+    <div class="grid">
+      <label>ACA RI<input data-k="ri" type="number" step="0.01" min="0" max="1.2" inputmode="decimal"></label>
+      <label>EDV<select data-k="edv"><option value="">Present</option><option>Absent</option><option>Reversed</option></select></label>
+    </div>
+  </details>
+
+  <details class="card sec" open>
+    <summary><h2>Additional notes &amp; reporter</h2></summary>
+    <label>Additional findings<textarea data-k="notes" rows="2"></textarea></label>
+    <div class="grid">
+      <label>Reported by<input data-k="reporter" type="text"></label>
+      <label>Designation<input data-k="designation" type="text"></label>
+    </div>
+  </details>
+
+  <div class="footer-nav">
+    <button type="button" class="btn" data-goto="interp">Interpretation →</button>
+  </div>
+</form>
+</section>
+
+<!-- ================= 3. INTERPRETATION ================= -->
+<section id="tab-interp" class="tab-panel no-print" hidden>
+  <div id="interpOut"></div>
+
+  <div class="card">
+    <div class="row-between">
+      <h2>Post-haemorrhagic ventricular dilatation monitoring</h2>
+      <button class="btn sm" id="addSeries">+ Add this scan</button>
+    </div>
+    <p class="muted small">Serial measurements are stored on this device only, keyed by MRN. Zones: green ≤ p97; amber moderate-risk; red high-risk (VI p97 + 4 mm; AHW ≥ 10 mm; TOD p97 + 6 mm).</p>
+    <div class="charts">
+      <figure><figcaption>Ventricular index</figcaption><canvas id="chVI" width="420" height="260"></canvas></figure>
+      <figure><figcaption>Anterior horn width</figcaption><canvas id="chAHW" width="420" height="260"></canvas></figure>
+      <figure><figcaption>Thalamo-occipital distance</figcaption><canvas id="chTOD" width="420" height="260"></canvas></figure>
+    </div>
+    <div class="legend"><span class="lg r">● Right</span><span class="lg l">◆ Left</span></div>
+    <div id="seriesTable"></div>
+  </div>
+  <div class="footer-nav"><button type="button" class="btn" data-goto="report">Report →</button></div>
+</section>
+
+<!-- ================= 4. REPORT ================= -->
+<section id="tab-report" class="tab-panel" hidden>
+  <div class="card no-print">
+    <div class="toolbar">
+      <button class="btn" id="btnPrint">Print / Save PDF</button>
+      <button class="btn ghost" id="btnCopy">Copy text</button>
+      <button class="btn ghost" id="btnTxt">Download .txt</button>
+      <button class="btn ghost" id="btnSave">Save case (.json)</button>
+      <label class="btn ghost file">Load case<input type="file" id="fileLoad" accept=".json,application/json"></label>
+    </div>
+    <div class="grid2">
+      <label>Impression <span class="muted small">(auto-generated – edit as needed)</span>
+        <textarea id="impression" rows="5"></textarea></label>
+      <label>Recommendation <span class="muted small">(auto-generated – edit as needed)</span>
+        <textarea id="recommendation" rows="5"></textarea></label>
+    </div>
+    <button class="btn ghost sm" id="btnRegen">↺ Regenerate impression &amp; recommendation</button>
+  </div>
+  <div id="reportSheet" class="sheet"></div>
+</section>
+</main>
+
+<dialog id="settingsDlg">
+  <form method="dialog">
+    <h3>Settings</h3>
+    <label>Hospital<input id="setHosp" type="text"></label>
+    <label>Department<input id="setDept" type="text"></label>
+    <label>Default reporter<input id="setRep" type="text"></label>
+    <label>Default designation<input id="setDes" type="text"></label>
+    <p class="muted small">Stored on this device only. No patient data leaves the device.</p>
+    <div class="row-end"><button class="btn" value="ok">Save</button></div>
+  </form>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<footer class="foot no-print">
+  NeoCranial USG v1.0 · Decision-support tool – clinical correlation and local protocols apply. Data are stored only in this browser.
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
