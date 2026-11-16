@@ -7,7 +7,7 @@
 Offline-capable web app (PWA) for neonatal cranial ultrasound, built for the NICU & Special Care Nursery, Hospital Miri.
 
 ## Four components
-1. **Scanning guide** – coronal C1–C6, sagittal S1–S3, posterior and mastoid fontanelle views with schematic anatomy, technique tips and measurement definitions.
+1. **Scanning guide** – real ultrasound images of the standard coronal C1–C6, sagittal S1–S3 and mastoid views with panel keys, plus an **image atlas** of 27 normal variants and abnormalities (GMH-IVH grades, PVHI, PVL, cerebellar haemorrhage, HIE, stroke, cysts, congenital). Tap to zoom; swipe between images. See [IMAGE_CREDITS.md](IMAGE_CREDITS.md).
 2. **Findings** – structured pro forma: patient details (auto PNA / PMA), indication, technique, views obtained, brain anatomy checklist, abnormalities (GMH-IVH, PVHI, ventricular measurements, white matter injury, cerebellum, cysts, echogenicity, infarction, congenital, extra-axial, Doppler).
 3. **Interpretation** – automatic classification:
    - Papile grade I–IV per side (with Volpe equivalent)
@@ -17,6 +17,12 @@ Offline-capable web app (PWA) for neonatal cranial ultrasound, built for the NIC
    - Cerebellar haemorrhage (punctate / limited / massive)
    - **PHVD monitoring** – serial VI, AHW, TOD plotted on risk-zone charts per MRN (CSV export)
 4. **Report generator** – formatted A4 report (patient details → recommendation) with auto-generated, editable impression and recommendation. Print / save PDF, copy text, download .txt, save/load case (.json).
+
+## iPhone use
+- Bottom tab bar, large touch targets, no zoom-on-focus.
+- **✓ Normal scan** fills a normal study in one tap; section headers show status (e.g. *Grade III*, *High risk*).
+- **📷 Examples** in each findings section opens matching reference images.
+- **Share** sends the report to WhatsApp, Mail, Notes, etc. **PDF / Print** uses the iOS print sheet (pinch out to save as PDF).
 
 ## Install from GitHub (GitHub Pages)
 1. Create a new public repository, e.g. `NeoCranial`.

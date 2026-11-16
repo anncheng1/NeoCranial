@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
 <title>NeoCranial USG – Neonatal Cranial Ultrasound</title>
 <meta name="description" content="Neonatal cranial ultrasound scanning guide, structured findings, interpretation and report generator.">
 <meta name="theme-color" content="#1a0f4a">
@@ -20,68 +21,55 @@
 <body>
 <header class="topbar no-print">
   <div class="brand">
-    <img src="icons/icon-192.png" alt="" width="36" height="36" style="border-radius:9px">
-    <div>
-      <div class="brand-name">NeoCranial USG</div>
-      <div class="brand-sub">Neonatal Cranial Ultrasound</div>
-    </div>
+    <img src="icons/icon-192.png" alt="" width="34" height="34">
+    <div class="brand-name">NeoCranial <span>USG</span></div>
   </div>
   <div class="top-actions">
-    <span id="patientChip" class="chip"></span>
-    <button class="btn ghost sm" id="btnNew" title="Start a new case">New</button>
-    <button class="btn ghost sm" id="btnSettings" title="Settings">⚙</button>
+    <button class="icon-btn" id="btnNew" aria-label="New case" title="New case">＋</button>
+    <button class="icon-btn" id="btnSettings" aria-label="Settings" title="Settings">⚙︎</button>
   </div>
 </header>
-
-<nav class="tabs no-print" role="tablist">
-  <button role="tab" data-tab="guide"><span class="n">1</span>Scanning guide</button>
-  <button role="tab" data-tab="findings" class="active"><span class="n">2</span>Findings</button>
-  <button role="tab" data-tab="interp"><span class="n">3</span>Interpretation</button>
-  <button role="tab" data-tab="report"><span class="n">4</span>Report</button>
-</nav>
+<div id="patientBar" class="patient-bar no-print"></div>
 
 <main>
-<!-- ================= 1. SCANNING GUIDE ================= -->
+<!-- ================= 1. GUIDE ================= -->
 <section id="tab-guide" class="tab-panel no-print" hidden>
-  <div class="card intro">
-    <h2>Scanning guide</h2>
-    <p class="muted">Standard coronal and sagittal views through the anterior fontanelle, plus supplementary windows. Diagrams are simplified schematics. Coronal: patient's right on image left. Sagittal: anterior on image left.</p>
-    <div class="seg" id="guideFilter">
-      <button data-f="all" class="on">All</button>
-      <button data-f="coronal">Coronal</button>
-      <button data-f="sagittal">Sagittal</button>
-      <button data-f="supplementary">Supplementary</button>
-    </div>
+  <div class="seg full" id="guideMode">
+    <button data-m="views" class="on">Normal views</button>
+    <button data-m="atlas">Image atlas</button>
+    <button data-m="tech">Technique</button>
   </div>
-  <div id="guideGrid" class="guide-grid"></div>
-  <div class="card">
-    <h3>Technique tips</h3>
-    <ul id="guideTips" class="tips"></ul>
+  <div id="guideViews"></div>
+  <div id="guideAtlas" hidden>
+    <div class="chips" id="atlasCats"></div>
+    <div id="atlasList" class="atlas"></div>
   </div>
-  <div class="card">
-    <h3>Measurement definitions</h3>
-    <table class="tbl">
-      <tr><th>Measure</th><th>Plane</th><th>Definition</th></tr>
-      <tr><td>Ventricular index (VI, Levene)</td><td>Coronal, foramen of Monro</td><td>Falx (midline) to lateral wall of lateral ventricle, each side</td></tr>
-      <tr><td>Anterior horn width (AHW)</td><td>Coronal, same plane as VI</td><td>Diagonal width of frontal horn at its widest point</td></tr>
-      <tr><td>Thalamo-occipital distance (TOD)</td><td>Parasagittal</td><td>Outermost point of thalamus at its junction with choroid plexus to outermost tip of occipital horn</td></tr>
-      <tr><td>3rd ventricle width</td><td>Coronal C3</td><td>Transverse diameter (normal &lt; 3 mm)</td></tr>
-      <tr><td>Trans-cerebellar diameter (TCD)</td><td>Mastoid / posterior coronal</td><td>≈ GA (mm) up to 27 wk, then +2 mm/wk (≈ 50–55 mm at term)</td></tr>
-      <tr><td>Cisterna magna</td><td>Midline sagittal / PF</td><td>Normal 3–10 mm</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h3>References</h3>
-    <ol id="guideRefs" class="refs"></ol>
+  <div id="guideTech" hidden>
+    <div class="card"><h3>Technique tips</h3><ul id="guideTips" class="tips"></ul></div>
+    <div class="card"><h3>Measurements</h3>
+      <dl class="deflist">
+        <dt>VI (Levene)</dt><dd>Coronal at foramen of Monro: falx → lateral wall of lateral ventricle, each side</dd>
+        <dt>AHW</dt><dd>Same plane: diagonal width of frontal horn</dd>
+        <dt>TOD</dt><dd>Parasagittal: outer thalamus → tip of occipital horn</dd>
+        <dt>3rd ventricle</dt><dd>Coronal C3, transverse; normal &lt; 3 mm</dd>
+        <dt>TCD</dt><dd>Mastoid view; ≈ GA in mm to 27 wk, then +2 mm/wk</dd>
+        <dt>Cisterna magna</dt><dd>Midline sagittal; normal 3–10 mm</dd>
+      </dl></div>
+    <div class="card"><h3>References</h3><ol id="guideRefs" class="refs"></ol></div>
+    <div class="card"><h3>Image credits</h3><div id="imgCredits" class="small"></div></div>
   </div>
 </section>
 
 <!-- ================= 2. FINDINGS ================= -->
 <section id="tab-findings" class="tab-panel no-print">
 <form id="form" autocomplete="off" onsubmit="return false">
+  <div class="quick">
+    <button type="button" class="btn ok" id="btnNormal">✓ Normal scan</button>
+    <button type="button" class="btn ghost" id="allViews">All views done</button>
+  </div>
 
   <details class="card sec" open>
-    <summary><h2>Patient details</h2></summary>
+    <summary><h2>Patient details</h2><span class="sum" data-sum="pt"></span></summary>
     <div class="grid">
       <label class="span2">Name<input data-k="name" type="text" placeholder="Baby of …"></label>
       <label>MRN<input data-k="mrn" type="text"></label>
@@ -97,14 +85,14 @@
     <div class="calc" id="ageCalc"></div>
   </details>
 
-  <details class="card sec" open>
-    <summary><h2>Indication</h2></summary>
+  <details class="card sec">
+    <summary><h2>Indication</h2><span class="sum" data-sum="ind"></span></summary>
     <div class="checks" id="indList"></div>
     <label>Other / clinical notes<input data-k="indOther" type="text"></label>
   </details>
 
   <details class="card sec">
-    <summary><h2>Technique</h2></summary>
+    <summary><h2>Technique</h2><span class="sum" data-sum="tech"></span></summary>
     <div class="sub">Acoustic windows</div>
     <div class="checks">
       <label class="ck"><input type="checkbox" data-g="win" value="AF" checked> Anterior fontanelle</label>
@@ -124,8 +112,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Standard views obtained</h2></summary>
-    <div class="row-end"><button type="button" class="btn ghost sm" id="allViews">Select all</button></div>
+    <summary><h2>Standard views obtained</h2><span class="sum" data-sum="views"></span></summary>
     <div class="sub">Coronal</div>
     <div class="checks" id="corList"></div>
     <div class="sub">Sagittal</div>
@@ -133,7 +120,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Brain anatomy</h2></summary>
+    <summary><h2>Brain anatomy</h2><span class="sum" data-sum="anat"></span></summary><button type="button" class="ex-btn" data-ex="anat">📷 Examples</button>
     <p class="muted small">First option in each list is normal. Change only what is abnormal.</p>
     <div class="grid" id="anatList"></div>
     <label>Anatomy notes<input data-k="anatNotes" type="text"></label>
@@ -142,7 +129,7 @@
   <h2 class="sec-title">Abnormalities</h2>
 
   <details class="card sec" open>
-    <summary><h2>Germinal matrix / intraventricular haemorrhage</h2></summary>
+    <summary><h2>Germinal matrix / intraventricular haemorrhage</h2><span class="sum" data-sum="ivh"></span></summary><button type="button" class="ex-btn" data-ex="ivh">📷 Examples</button>
     <div class="lr">
       <fieldset><legend>Right</legend>
         <label>Haemorrhage<select data-k="ivhR">
@@ -167,7 +154,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Periventricular haemorrhagic infarction (PVHI)</h2></summary>
+    <summary><h2>Periventricular haemorrhagic infarction (PVHI)</h2><span class="sum" data-sum="phi"></span></summary><button type="button" class="ex-btn" data-ex="phi">📷 Examples</button>
     <div class="lr">
       <fieldset><legend>Right</legend>
         <label class="ck"><input type="checkbox" data-k="phiR"> PVHI present</label>
@@ -194,7 +181,7 @@
   </details>
 
   <details class="card sec" open>
-    <summary><h2>Ventricular measurements (mm)</h2></summary>
+    <summary><h2>Ventricular measurements (mm)</h2><span class="sum" data-sum="vent"></span></summary><button type="button" class="ex-btn" data-ex="vent">📷 Examples</button>
     <div class="meas-grid">
       <div></div><div class="mh">Right</div><div class="mh">Left</div>
       <div class="ml">VI</div><input data-k="viR" type="number" step="0.1" inputmode="decimal"><input data-k="viL" type="number" step="0.1" inputmode="decimal">
@@ -211,7 +198,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>White matter injury</h2></summary>
+    <summary><h2>White matter injury</h2><span class="sum" data-sum="wmi"></span></summary><button type="button" class="ex-btn" data-ex="wmi">📷 Examples</button>
     <div class="grid">
       <label>Periventricular echogenicity<select data-k="pve">
         <option value="none">None / normal</option>
@@ -236,7 +223,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Cerebellum / posterior fossa</h2></summary>
+    <summary><h2>Cerebellum / posterior fossa</h2><span class="sum" data-sum="cbh"></span></summary><button type="button" class="ex-btn" data-ex="cbh">📷 Examples</button>
     <div class="grid">
       <label>Cerebellar haemorrhage<select data-k="cbh">
         <option value="none">None seen</option>
@@ -251,7 +238,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Cysts, echogenicity &amp; infarction</h2></summary>
+    <summary><h2>Cysts, echogenicity &amp; infarction</h2><span class="sum" data-sum="other"></span></summary><button type="button" class="ex-btn" data-ex="cysts echo infarct">📷 Examples</button>
     <div class="sub">Cysts</div>
     <div class="checks">
       <label class="ck"><input type="checkbox" data-g="cysts" value="Choroid plexus cyst"> Choroid plexus cyst</label>
@@ -276,7 +263,7 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Congenital abnormalities &amp; extra-axial</h2></summary>
+    <summary><h2>Congenital abnormalities &amp; extra-axial</h2><span class="sum" data-sum="cong"></span></summary><button type="button" class="ex-btn" data-ex="cong extra">📷 Examples</button>
     <div class="checks">
       <label class="ck"><input type="checkbox" data-g="cong" value="Agenesis / dysgenesis of corpus callosum"> Agenesis/dysgenesis of corpus callosum</label>
       <label class="ck"><input type="checkbox" data-g="cong" value="Holoprosencephaly"> Holoprosencephaly</label>
@@ -298,14 +285,14 @@
   </details>
 
   <details class="card sec">
-    <summary><h2>Doppler (optional)</h2></summary>
+    <summary><h2>Doppler (optional)</h2><span class="sum" data-sum="dop"></span></summary>
     <div class="grid">
       <label>ACA RI<input data-k="ri" type="number" step="0.01" min="0" max="1.2" inputmode="decimal"></label>
       <label>EDV<select data-k="edv"><option value="">Present</option><option>Absent</option><option>Reversed</option></select></label>
     </div>
   </details>
 
-  <details class="card sec" open>
+  <details class="card sec">
     <summary><h2>Additional notes &amp; reporter</h2></summary>
     <label>Additional findings<textarea data-k="notes" rows="2"></textarea></label>
     <div class="grid">
@@ -345,7 +332,8 @@
 <section id="tab-report" class="tab-panel" hidden>
   <div class="card no-print">
     <div class="toolbar">
-      <button class="btn" id="btnPrint">Print / Save PDF</button>
+      <button class="btn" id="btnShare">Share</button>
+      <button class="btn ghost" id="btnPrint">PDF / Print</button>
       <button class="btn ghost" id="btnCopy">Copy text</button>
       <button class="btn ghost" id="btnTxt">Download .txt</button>
       <button class="btn ghost" id="btnSave">Save case (.json)</button>
@@ -374,6 +362,20 @@
     <div class="row-end"><button class="btn" value="ok">Save</button></div>
   </form>
 </dialog>
+
+<dialog id="viewer" class="viewer">
+  <div class="v-top"><button class="icon-btn" id="vClose" aria-label="Close">✕</button><span id="vCount"></span>
+    <span><button class="icon-btn" id="vPrev" aria-label="Previous">‹</button><button class="icon-btn" id="vNext" aria-label="Next">›</button></span></div>
+  <div class="v-img"><img id="vImg" alt=""></div>
+  <div class="v-cap" id="vCap"></div>
+</dialog>
+
+<nav class="bottom-nav no-print" role="tablist">
+  <button data-tab="guide"><svg viewBox="0 0 24 24"><path d="M12 3 4 15a8 8 0 0 0 16 0Z"/><path d="M9 4h6"/><circle cx="12" cy="14" r="2.5"/></svg>Guide</button>
+  <button data-tab="findings" class="active"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Findings</button>
+  <button data-tab="interp"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Interpret</button>
+  <button data-tab="report"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Report</button>
+</nav>
 
 <div id="toast" role="status"></div>
 

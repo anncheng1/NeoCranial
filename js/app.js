@@ -374,7 +374,7 @@ function renderAges() {
   $('#ageCalc').innerHTML = `<span>Postnatal age: <b>${a.pna != null ? a.pna + ' days' : '–'}</b></span>
     <span>PMA: <b>${a.pmaTxt}</b></span>${a.cga ? `<span>Corrected age: <b>${a.cga}</b></span>` : ''}
     ${a.pna != null && a.pna < 0 ? '<span class="warn">Scan date is before DOB</span>' : ''}`;
-  $('#patientChip').textContent = S.name || S.mrn ? `${S.name || ''}${S.mrn ? ' · ' + S.mrn : ''} · ${a.pmaTxt}` : '';
+  $('#patientBar').innerHTML = S.name || S.mrn ? `<b>${esc(S.name || '')}</b>${S.mrn ? ' · ' + esc(S.mrn) : ''} <span>GA ${a.gaTxt} · D${a.pna ?? '–'} · PMA ${a.pmaTxt}</span>` : '';
 }
 
 /* ---------------- Report ---------------- */
@@ -476,7 +476,7 @@ function renderReport() {
   <h4>9. Recommendation</h4><div class="box">${esc(rec).replace(/\n/g, '<br>')}</div>
   <div class="sign">
     <div><div class="line"></div>${esc(o.reporter || settings.rep || 'Reported by')}<br><span class="small">${esc(o.designation || settings.des || '')}</span></div>
-    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v1.0</div>
+    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v1.2</div>
   </div>`;
 }
 
@@ -605,17 +605,110 @@ function drawChart(cv, key, arr, cur) {
   if (cur) { plot([cur], 'R', true); plot([cur], 'L', true); }
 }
 
-/* ---------------- Guide ---------------- */
-function renderGuide(filter = 'all') {
-  $('#guideGrid').innerHTML = GUIDE.filter(g => filter === 'all' || g.plane === filter).map(g => `
-    <article class="card gcard">
-      <div class="gtag ${g.plane}">${g.plane}</div>
-      <h3>${g.title}</h3>
-      <svg viewBox="0 0 300 200" class="schem" role="img" aria-label="Schematic of ${g.title}">${g.svg()}</svg>
-      <p><b>How:</b> ${g.how}</p>
-      <p><b>Structures:</b></p><ul class="tight">${g.see.map(s => `<li>${s}</li>`).join('')}</ul>
-      <p class="look"><b>Look for:</b> ${g.look}</p>
+/* ---------------- Guide: real images, atlas, viewer ---------------- */
+const imgPath = n => `images/${n}.jpg`;
+const credit = (src, fig) => `Fig ${fig}: <a href="${SOURCES[src].url}" target="_blank" rel="noopener">${SOURCES[src].short}</a> · <a href="${SOURCES[src].licUrl}" target="_blank" rel="noopener">${SOURCES[src].licence}</a>`;
+let vList = [], vIdx = 0;
+
+function renderViews() {
+  $('#guideViews').innerHTML = VIEWS.map((v, i) => `
+    <article class="card vcard">
+      <h3>${v.title}</h3>
+      <div class="muted small">${v.window}</div>
+      <button class="img-btn" data-view="${i}"><img src="${imgPath(v.img)}" alt="${esc(v.title)}" loading="lazy"><span class="zoom">⤢</span></button>
+      <div class="credit">${credit(v.src, v.fig)}</div>
+      <p class="small">${v.how}</p>
+      <ul class="plist">${v.panels.map(([p, t, d]) => `<li>${p ? `<b class="pl">${p}</b>` : ''}<div><b>${t}</b><span>${d}</span></div></li>`).join('')}</ul>
     </article>`).join('');
+  $$('[data-view]').forEach(b => b.onclick = () => openViewer(VIEWS.map(v => ({ ...v, keys: v.panels.map(p => `${p[0] ? p[0] + ': ' : ''}${p[1]}`) })), +b.dataset.view));
+}
+
+let atlasCat = 'All';
+function renderAtlas() {
+  const cats = ['All', ...new Set(ATLAS.map(a => a.cat))];
+  $('#atlasCats').innerHTML = cats.map(c => `<button class="chipb ${c === atlasCat ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('');
+  $$('#atlasCats [data-cat]').forEach(b => b.onclick = () => { atlasCat = b.dataset.cat; renderAtlas(); });
+  const list = ATLAS.filter(a => atlasCat === 'All' || a.cat === atlasCat);
+  $('#atlasList').innerHTML = list.map((a, i) => `
+    <button class="acard" data-atlas="${i}">
+      <img src="${imgPath(a.img)}" alt="" loading="lazy">
+      <div><b>${a.title}</b>${a.variant ? '<span class="tag-var">Normal variant</span>' : ''}<span class="muted small">${a.keys[0]}</span></div>
+    </button>`).join('');
+  $$('#atlasList [data-atlas]').forEach(b => b.onclick = () => openViewer(list, +b.dataset.atlas));
+}
+
+function openViewer(list, i) {
+  vList = list; vIdx = i; showV(); const d = $('#viewer'); if (!d.open) d.showModal();
+}
+function showV() {
+  const a = vList[vIdx];
+  $('#vImg').src = imgPath(a.img); $('#vImg').alt = a.title;
+  $('#vCount').textContent = vList.length > 1 ? `${vIdx + 1} / ${vList.length}` : '';
+  $('#vCap').innerHTML = `<b>${a.title}</b>${a.variant ? ' <span class="tag-var">Normal variant</span>' : ''}
+    <ul>${(a.keys || []).map(k => `<li>${k}</li>`).join('')}</ul><div class="credit">${credit(a.src, a.fig)}. ${SOURCES[a.src].note}</div>`;
+  $('#vPrev').disabled = vIdx === 0; $('#vNext').disabled = vIdx === vList.length - 1;
+  $('.v-img').scrollTo(0, 0);
+}
+function initViewer() {
+  const d = $('#viewer');
+  $('#vClose').onclick = () => d.close();
+  $('#vPrev').onclick = () => { if (vIdx > 0) { vIdx--; showV(); } };
+  $('#vNext').onclick = () => { if (vIdx < vList.length - 1) { vIdx++; showV(); } };
+  let x0 = null;
+  $('.v-img').addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  $('.v-img').addEventListener('touchend', e => {
+    if (x0 == null || window.visualViewport && visualViewport.scale > 1.05) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (dx < -60) $('#vNext').click(); else if (dx > 60) $('#vPrev').click();
+  });
+  d.addEventListener('click', e => { if (e.target === d) d.close(); });
+  $$('.ex-btn').forEach(b => b.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    const links = b.dataset.ex.split(' ');
+    const list = ATLAS.filter(a => links.includes(a.link));
+    if (list.length) openViewer(list, 0);
+  });
+}
+
+function renderCredits() {
+  $('#imgCredits').innerHTML = Object.values(SOURCES).map(s =>
+    `<p><a href="${s.url}" target="_blank" rel="noopener">${s.short}</a> – licensed under <a href="${s.licUrl}" target="_blank" rel="noopener">${s.licence}</a>. ${s.note}</p>`).join('') +
+    '<p class="muted">Images are reproduced for non-commercial education. See IMAGE_CREDITS.md.</p>';
+}
+
+/* ---------------- Section status (shown on collapsed headers) ---------------- */
+function renderSums() {
+  const o = S, r = I, set = (k, t, cls = '') => { const el = $(`[data-sum="${k}"]`); if (el) { el.textContent = t; el.className = 'sum ' + cls; } };
+  const a = r.a;
+  set('pt', o.name || o.mrn ? `${a.pmaTxt}` : 'Required', o.name || o.mrn ? 'ok' : 'todo');
+  set('ind', (o.ind || []).length ? `${o.ind.length} selected` : '', '');
+  set('tech', (o.win || []).join(' · '), '');
+  const nv = (o.views || []).length; set('views', `${nv}/11`, nv >= 11 ? 'ok' : nv ? 'warn' : 'todo');
+  set('anat', r.anatAbn.length ? `${r.anatAbn.length} abnormal` : 'Normal', r.anatAbn.length ? 'bad' : 'ok');
+  set('ivh', r.papile ? `Grade ${['', 'I', 'II', 'III', 'IV'][r.papile]}` : 'None', r.papile >= 3 ? 'bad' : r.papile ? 'warn' : 'ok');
+  set('phi', r.phi.length ? r.phi.map(p => p.side).join(' + ') : 'None', r.phi.length ? 'bad' : 'ok');
+  set('vent', r.ventZone == null ? '–' : r.ventZone === 'high' ? 'High risk' : r.ventZone === 'moderate' ? 'Moderate' : 'Normal', r.ventZone === 'high' ? 'bad' : r.ventZone === 'moderate' ? 'warn' : r.ventZone ? 'ok' : '');
+  set('wmi', r.devries >= 1 ? `PVL ${['', 'I', 'II', 'III', 'IV'][r.devries]}` : r.devries ? 'PVE' : 'None', r.devries >= 2 ? 'bad' : r.devries ? 'warn' : 'ok');
+  set('cbh', r.cbh === 'none' ? 'None' : r.cbh, r.cbh === 'none' ? 'ok' : 'bad');
+  const oth = r.cysts.length + r.echo.length + (r.infarct ? 1 : 0); set('other', oth ? `${oth} finding${oth > 1 ? 's' : ''}` : 'None', oth ? 'warn' : 'ok');
+  const cg = r.cong.length + r.extra.length; set('cong', cg ? `${cg} finding${cg > 1 ? 's' : ''}` : 'None', cg ? 'bad' : 'ok');
+  set('dop', r.ri != null ? 'RI ' + r.ri.toFixed(2) : '', '');
+}
+
+function setNormal() {
+  const keep = new Set(['pt', 'ind', 'tech']);
+  $$('#form details.sec').forEach(d => {
+    const sum = d.querySelector('[data-sum]'); if (!sum || keep.has(sum.dataset.sum)) return;
+    d.querySelectorAll('[data-k]').forEach(el => {
+      if (el.type === 'checkbox') el.checked = false;
+      else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+      else if (!['reporter', 'designation'].includes(el.dataset.k)) el.value = '';
+    });
+    d.querySelectorAll('[data-g]').forEach(el => el.checked = el.dataset.g === 'views');
+    d.open = false;
+  });
+  S.impEdited = S.recEdited = false;
+  update(); toast('Set to normal – add measurements if taken');
 }
 
 /* ---------------- Update cycle ---------------- */
@@ -623,21 +716,22 @@ let saveTimer;
 function update() {
   S = readForm();
   I = interpret(S);
-  renderAges(); renderVentLive();
+  renderAges(); renderVentLive(); renderSums();
   if (!S.impEdited) { S.impression = buildImpression(S, I); $('#impression').value = S.impression; }
   if (!S.recEdited) { S.recommendation = buildRecommendation(S, I); $('#recommendation').value = S.recommendation; }
-  const active = $('.tabs .active')?.dataset.tab;
+  const active = $('.bottom-nav .active')?.dataset.tab;
   if (active === 'interp') { renderInterp(); renderSeries(); }
   if (active === 'report') renderReport();
   clearTimeout(saveTimer); saveTimer = setTimeout(() => store(LS_CASE, S), 300);
 }
 
 function showTab(t) {
-  $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  $$('.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   $$('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + t);
   if (t === 'interp') { renderInterp(); renderSeries(); }
   if (t === 'report') renderReport();
   window.scrollTo({ top: 0 });
+  document.body.dataset.tab = t;
   try { history.replaceState(null, '', '#' + t); } catch {}
 }
 
@@ -664,9 +758,11 @@ function init() {
   buildForm();
   $('#guideTips').innerHTML = GUIDE_TIPS.map(t => `<li>${t}</li>`).join('');
   $('#guideRefs').innerHTML = GUIDE_REFS.map(t => `<li>${t}</li>`).join('');
-  renderGuide();
-  $$('#guideFilter button').forEach(b => b.onclick = () => {
-    $$('#guideFilter button').forEach(x => x.classList.toggle('on', x === b)); renderGuide(b.dataset.f);
+  renderViews(); renderAtlas(); renderCredits(); initViewer();
+  $$('#guideMode button').forEach(b => b.onclick = () => {
+    $$('#guideMode button').forEach(x => x.classList.toggle('on', x === b));
+    $('#guideViews').hidden = b.dataset.m !== 'views'; $('#guideAtlas').hidden = b.dataset.m !== 'atlas'; $('#guideTech').hidden = b.dataset.m !== 'tech';
+    window.scrollTo({ top: 0 });
   });
 
   const saved = load(LS_CASE, null);
@@ -675,7 +771,8 @@ function init() {
 
   $('#form').addEventListener('input', update);
   $('#form').addEventListener('change', update);
-  $$('.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $$('.bottom-nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $('#btnNormal').onclick = setNormal;
   $$('[data-goto]').forEach(b => b.onclick = () => showTab(b.dataset.goto));
   $('#allViews').onclick = () => { $$('[data-g="views"]').forEach(c => c.checked = true); update(); };
 
@@ -684,6 +781,11 @@ function init() {
   $('#btnRegen').onclick = () => { S.impEdited = S.recEdited = false; update(); renderReport(); toast('Regenerated from findings'); };
 
   $('#btnPrint').onclick = () => { renderReport(); window.print(); };
+  $('#btnShare').onclick = async () => {
+    const text = reportText();
+    if (navigator.share) { try { await navigator.share({ title: 'Cranial US report' + (S.mrn ? ' – ' + S.mrn : ''), text }); } catch {} }
+    else { try { await navigator.clipboard.writeText(text); toast('Report copied'); } catch { download(fileBase() + '.txt', text); } }
+  };
   $('#btnCopy').onclick = async () => {
     try { await navigator.clipboard.writeText(reportText()); toast('Report copied'); }
     catch { download(fileBase() + '.txt', reportText()); }

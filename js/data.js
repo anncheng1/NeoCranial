@@ -147,161 +147,104 @@ const CBH = {
   massive: 'Massive cerebellar haemorrhage (≥ 1/3 of hemisphere)'
 };
 
-/* ---------- Scanning guide ------------------------------------------------
-   Schematic drawings are simplified, original line diagrams (not images).
-   Anterior is on the LEFT of sagittal images; patient's right is on the
-   LEFT of coronal images (standard convention).                            */
-const G = {
-  sector(extra = '') {
-    return `<path d="M150 8 L14 150 A190 190 0 0 0 286 150 Z" class="sec"/>${extra}`;
-  },
-  lab(x, y, tx, ty, text, anchor = 'start') {
-    return `<line x1="${x}" y1="${y}" x2="${tx}" y2="${ty}" class="ldr"/><circle cx="${x}" cy="${y}" r="1.8" class="dot"/><text x="${tx + (anchor === 'end' ? -2 : 2)}" y="${ty + 3}" text-anchor="${anchor}" class="lbl">${text}</text>`;
-  },
-  meas(x1, y1, x2, y2, t, tx, ty) {
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="meas"/><text x="${tx}" y="${ty}" class="mlbl">${t}</text>`;
-  }
+/* ---------- Image sources (open-access licences) ------------------------- */
+const SOURCES = {
+  tp: { short: 'Caro-Domínguez P et al. Transl Pediatr 2021;10(4):1117-37',
+        url: 'https://doi.org/10.21037/tp-20-399', licence: 'CC BY-NC-ND 4.0',
+        licUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/', note: 'Reproduced unaltered (resized).' },
+  fi: { short: 'Fichera G et al. J Ultrasound 2024;27:993-1002',
+        url: 'https://doi.org/10.1007/s40477-024-00914-8', licence: 'CC BY 4.0',
+        licUrl: 'https://creativecommons.org/licenses/by/4.0/', note: 'Resized from original.' }
 };
 
-const IHF = '<line x1="150" y1="14" x2="150" y2="150" class="ihf"/>';
+/* ---------- Normal views (real images) ------------------------------------ */
+const VIEWS = [
+  { id: 'coronal', title: 'Coronal views C1–C6', img: 'tp-fig01-coronal-normal', src: 'tp', fig: 1,
+    window: 'Anterior fontanelle', how: 'Probe marker to the baby’s right. Sweep from the frontal lobes back to the occipital lobes, keeping the interhemispheric fissure central.',
+    panels: [
+      ['A · C1', 'Frontal lobes', 'Interhemispheric fissure, frontal white matter, orbital roofs'],
+      ['B · C2', 'Frontal horns', 'Frontal horns, cavum septum pellucidum, corpus callosum, caudate heads'],
+      ['C · C3', 'Foramen of Monro / 3rd ventricle', 'Standard plane for VI and AHW; 3rd ventricle < 3 mm; Sylvian fissures'],
+      ['D · C4', 'Thalami / cerebellum', 'Thalami, choroid plexus in ventricular bodies, tentorium, cerebellum'],
+      ['E · C5', 'Trigones', 'Choroid glomus fills trigones; peritrigonal blush must be less bright than choroid'],
+      ['F · C6', 'Occipital lobes', 'Best plane for occipital periventricular flare and cystic PVL']
+    ] },
+  { id: 'sagittal', title: 'Sagittal views S1–S3', img: 'tp-fig02-sagittal-normal', src: 'tp', fig: 2,
+    window: 'Anterior fontanelle', how: 'Rotate 90° (marker toward nose; anterior on image left). Midline, then angle to each side.',
+    panels: [
+      ['A · S1', 'Midline sagittal', 'Corpus callosum, CSP, 3rd & 4th ventricles, vermis, cisterna magna'],
+      ['B · S2', 'Parasagittal – lateral ventricle (R & L)', 'Caudothalamic groove (GMH site), caudate, thalamus, choroid; measure TOD'],
+      ['C · S3', 'Parasagittal – insula (R & L)', 'Sylvian fissure, periventricular white matter, sulcation']
+    ] },
+  { id: 'mastoid', title: 'Mastoid fontanelle', img: 'tp-fig03-mastoid-normal', src: 'tp', fig: 3,
+    window: 'Mastoid fontanelle', how: 'Probe ~1 cm behind the ear, above the tragus. Essential for cerebellar haemorrhage, especially < 32 wk.',
+    panels: [['', 'Posterior fossa', 'Cerebellar hemispheres, vermis, 4th ventricle, cisterna magna; measure TCD']] },
+  { id: 'sulcation', title: 'Sulcation: preterm vs term', img: 'tp-fig04-sulcation', src: 'tp', fig: 4,
+    window: 'Coronal + sagittal', how: 'Gyral pattern must match PMA. A smooth brain at term is abnormal.',
+    panels: [['A, C', 'Preterm', 'Few, shallow sulci; wide open Sylvian fissure'], ['B, D', 'Term', 'Complex, branching sulci']] }
+];
 
-const GUIDE = [
-  {
-    id: 'C1', plane: 'coronal', title: 'C1 – Frontal lobes',
-    how: 'Angle the probe as far anteriorly as possible, in front of the frontal horns. Orbital roofs form the inferior border. Image must be symmetrical with the interhemispheric fissure (IHF) central.',
-    see: ['Interhemispheric fissure', 'Frontal lobes / frontal white matter', 'Orbital roofs', 'Extra-axial space over convexity'],
-    look: 'Frontal white matter echogenicity, extra-axial collections, frontal cysts.',
-    svg: () => G.sector(IHF +
-      '<path d="M90 160 Q120 140 145 158" class="bone"/><path d="M155 158 Q180 140 210 160" class="bone"/>' +
-      '<ellipse cx="110" cy="95" rx="38" ry="40" class="wm"/><ellipse cx="190" cy="95" rx="38" ry="40" class="wm"/>' +
-      G.lab(150, 50, 205, 28, 'IHF') + G.lab(110, 95, 40, 70, 'Frontal lobe', 'start') + G.lab(120, 150, 60, 182, 'Orbital roof'))
-  },
-  {
-    id: 'C2', plane: 'coronal', title: 'C2 – Frontal horns',
-    how: 'Angle slightly posteriorly until the frontal horns appear as paired anechoic structures either side of the midline.',
-    see: ['Frontal horns of lateral ventricles', 'Cavum septum pellucidum (CSP)', 'Corpus callosum (genu)', 'Caudate heads', 'Sylvian fissures'],
-    look: 'Anterior horn width (AHW) can be measured here or at C3. CSP is larger in preterm infants – do not mistake for 3rd ventricle. Absent CSP → think agenesis of corpus callosum / septo-optic dysplasia.',
-    svg: () => G.sector(IHF +
-      '<path d="M120 68 Q150 52 180 68" class="cc"/>' +
-      '<path d="M128 74 q-10 6 -6 20 q8 -2 18 -14 z" class="csf"/><path d="M172 74 q10 6 6 20 q-8 -2 -18 -14 z" class="csf"/>' +
-      '<rect x="146" y="74" width="8" height="18" rx="3" class="csf"/>' +
-      '<ellipse cx="124" cy="104" rx="14" ry="10" class="gm"/><ellipse cx="176" cy="104" rx="14" ry="10" class="gm"/>' +
-      '<path d="M70 120 l20 -6" class="fis"/><path d="M230 120 l-20 -6" class="fis"/>' +
-      G.lab(150, 60, 200, 30, 'Corpus callosum') + G.lab(128, 84, 50, 60, 'Frontal horn') + G.lab(150, 86, 210, 70, 'CSP') +
-      G.lab(124, 104, 46, 130, 'Caudate head') + G.lab(225, 118, 200, 160, 'Sylvian fissure'))
-  },
-  {
-    id: 'C3', plane: 'coronal', title: 'C3 – Foramina of Monro / 3rd ventricle',
-    how: 'Angle further back to show the 3rd ventricle as a small midline slit below the CSP. The Sylvian fissures are Y-shaped (term) or widely open (preterm).',
-    see: ['Bodies of lateral ventricles', 'Foramen of Monro', '3rd ventricle', 'Caudothalamic groove region', 'Sylvian fissures'],
-    look: 'Standard plane for the Levene ventricular index (VI): falx → lateral wall of lateral ventricle, each side. AHW is the diagonal width of the frontal horn in this plane. 3rd ventricle normally < 3 mm. Look for GMH at the caudothalamic region.',
-    svg: () => G.sector(IHF +
-      '<path d="M118 66 Q150 50 182 66" class="cc"/>' +
-      '<path d="M127 72 q-14 8 -8 24 q10 -2 22 -16 z" class="csf"/><path d="M173 72 q14 8 8 24 q-10 -2 -22 -16 z" class="csf"/>' +
-      '<rect x="147" y="74" width="6" height="12" rx="2" class="csf"/><rect x="148" y="100" width="4" height="22" rx="2" class="csf"/>' +
-      '<path d="M66 112 l22 -2 l10 -12 M88 110 l10 10" class="fis"/><path d="M234 112 l-22 -2 l-10 -12 M212 110 l-10 10" class="fis"/>' +
-      G.meas(150, 86, 119, 86, 'VI', 120, 82) +
-      G.meas(126, 73, 120, 95, '', 0, 0) +
-      G.lab(150, 112, 200, 150, '3rd ventricle') + G.lab(140, 92, 60, 60, 'Foramen of Monro') + G.lab(90, 104, 40, 140, 'Sylvian fissure'))
-  },
-  {
-    id: 'C4', plane: 'coronal', title: 'C4 – Thalami / choroid plexus',
-    how: 'Angle posterior to the foramen of Monro to show the thalami, bodies of the lateral ventricles with choroid plexus, and the cerebellum below the tentorium.',
-    see: ['Thalami', 'Bodies of lateral ventricles + choroid plexus', 'Tentorium', 'Cerebellum (vermis brighter than hemispheres)', 'Cisterna magna'],
-    look: 'Thalamic/basal ganglia echogenicity (HIE). Some units measure VI here. Cerebellar haemorrhage (supplement with mastoid view).',
-    svg: () => G.sector(IHF +
-      '<path d="M116 62 Q150 48 184 62" class="cc"/>' +
-      '<path d="M126 68 q-16 10 -10 24 q12 -4 24 -18 z" class="csf"/><path d="M174 68 q16 10 10 24 q-12 -4 -24 -18 z" class="csf"/>' +
-      '<ellipse cx="128" cy="80" rx="6" ry="4" class="cp"/><ellipse cx="172" cy="80" rx="6" ry="4" class="cp"/>' +
-      '<ellipse cx="134" cy="110" rx="15" ry="13" class="gm"/><ellipse cx="166" cy="110" rx="15" ry="13" class="gm"/>' +
-      '<path d="M100 150 Q150 122 200 150" class="bone"/>' +
-      '<ellipse cx="150" cy="168" rx="34" ry="14" class="cb"/><ellipse cx="150" cy="168" rx="9" ry="12" class="cp"/>' +
-      G.lab(134, 110, 50, 120, 'Thalamus') + G.lab(172, 80, 230, 55, 'Choroid plexus') + G.lab(190, 145, 240, 135, 'Tentorium') + G.lab(176, 170, 236, 180, 'Cerebellum'))
-  },
-  {
-    id: 'C5', plane: 'coronal', title: 'C5 – Trigones',
-    how: 'Angle further back through the trigones (atria). Ventricular cavities diverge laterally and are filled with echogenic choroid plexus.',
-    see: ['Trigones with glomus of choroid plexus', 'Peritrigonal white matter', 'Cavum vergae (if present)'],
-    look: 'Distinguish the normal symmetrical "peritrigonal blush" (less echogenic than choroid) from periventricular flare. Parallel ventricles → consider corpus callosum dysgenesis. Choroid plexus cysts / bleed.',
-    svg: () => G.sector(IHF +
-      '<path d="M140 70 q-26 4 -36 26 q18 6 34 -10 z" class="csf"/><path d="M160 70 q26 4 36 26 q-18 6 -34 -10 z" class="csf"/>' +
-      '<ellipse cx="122" cy="86" rx="12" ry="7" class="cp"/><ellipse cx="178" cy="86" rx="12" ry="7" class="cp"/>' +
-      '<ellipse cx="112" cy="100" rx="22" ry="14" class="blush"/><ellipse cx="188" cy="100" rx="22" ry="14" class="blush"/>' +
-      G.lab(122, 86, 46, 60, 'Choroid (glomus)') + G.lab(188, 104, 226, 140, 'Peritrigonal WM') + G.lab(140, 74, 170, 30, 'Trigone'))
-  },
-  {
-    id: 'C6', plane: 'coronal', title: 'C6 – Occipital lobes',
-    how: 'Angle maximally posteriorly to show parietal and occipital cortex with the IHF central.',
-    see: ['Occipital / parietal white matter', 'Sulcal pattern', 'Interhemispheric fissure'],
-    look: 'Best plane for periventricular flare and cystic PVL in the occipital white matter. Sulcation becomes more complex with increasing PMA.',
-    svg: () => G.sector(IHF +
-      '<ellipse cx="112" cy="90" rx="36" ry="40" class="wm"/><ellipse cx="188" cy="90" rx="36" ry="40" class="wm"/>' +
-      '<path d="M90 70 q10 6 6 16 M100 110 q10 -4 16 6 M200 70 q-10 6 -6 16 M200 110 q-10 -4 -16 6" class="fis"/>' +
-      G.lab(112, 90, 40, 60, 'Occipital WM') + G.lab(96, 80, 40, 140, 'Sulci') + G.lab(150, 40, 200, 24, 'IHF'))
-  },
-  {
-    id: 'S1', plane: 'sagittal', title: 'S1 – Midline sagittal',
-    how: 'Rotate the probe 90° (marker toward the nose; anterior on the left of the image) and keep it in the midline of the anterior fontanelle.',
-    see: ['Corpus callosum (genu → splenium)', 'Cingulate sulcus', 'CSP / cavum vergae', '3rd ventricle', 'Aqueduct, brainstem', 'Cerebellar vermis + 4th ventricle', 'Cisterna magna'],
-    look: 'Corpus callosum presence and length; vermis size and lobulation; 4th ventricle; cisterna magna (normal 3–10 mm). Absent/abnormal CC → MRI.',
-    svg: () => G.sector(
-      '<path d="M70 92 Q150 30 228 96" class="ccband"/>' +
-      '<path d="M82 92 Q150 46 216 98" class="fis"/>' +
-      '<path d="M100 98 Q150 66 196 100 L190 106 Q150 80 108 104 Z" class="csf"/>' +
-      '<path d="M138 112 l18 -2 l6 16 l-18 4 z" class="csf"/>' +
-      '<path d="M160 130 q6 18 -2 34" class="gm" style="fill:none;stroke-width:10"/>' +
-      '<ellipse cx="200" cy="150" rx="22" ry="20" class="cb"/><path d="M182 146 l10 4 l-10 4 z" class="csf"/>' +
-      '<path d="M190 172 q16 10 34 2 l-4 -6 q-14 6 -26 -2 z" class="csf"/>' +
-      G.lab(120, 60, 56, 30, 'Corpus callosum') + G.lab(140, 86, 70, 130, 'CSP') + G.lab(150, 118, 90, 160, '3rd ventricle') +
-      G.lab(208, 146, 244, 120, 'Vermis') + G.lab(186, 150, 230, 196, '4th ventricle') + G.lab(214, 176, 214, 194, 'Cisterna magna', 'end') +
-      '<text x="20" y="24" class="ori">ANT</text><text x="262" y="24" class="ori">POST</text>')
-  },
-  {
-    id: 'S2', plane: 'sagittal', title: 'S2 – Parasagittal (lateral ventricle), right & left',
-    how: 'From midline, angle laterally (right, then left) until the whole C-shaped lateral ventricle is shown.',
-    see: ['C-shaped lateral ventricle', 'Choroid plexus in atrium', 'Caudate nucleus (anterior floor)', 'Thalamus', 'Caudothalamic groove (CTG)'],
-    look: 'Key plane for GMH: echogenicity at the CTG that is ≥ choroid plexus, or choroid extending anterior to CTG, suggests GMH. Choroid is NOT normally in frontal or occipital horns – echogenic material there = blood. Measure TOD here (outermost thalamus → tip of occipital horn).',
-    svg: () => G.sector(
-      '<path d="M62 92 Q90 56 150 58 Q214 60 236 102 Q240 124 222 132 Q214 112 196 96 Q160 76 120 82 Q92 88 80 104 Z" class="csf"/>' +
-      '<path d="M152 80 Q190 82 214 116 Q204 122 190 112 Q172 92 150 90 Z" class="cp"/>' +
-      '<ellipse cx="104" cy="110" rx="22" ry="14" class="gm"/><ellipse cx="148" cy="116" rx="26" ry="20" class="gm"/>' +
-      '<path d="M124 98 l4 10 l4 -10" class="ctg"/>' +
-      G.meas(170, 112, 232, 116, 'TOD', 196, 128) +
-      G.lab(104, 110, 40, 140, 'Caudate') + G.lab(148, 120, 110, 170, 'Thalamus') + G.lab(128, 104, 92, 50, 'CTG') + G.lab(190, 96, 200, 40, 'Choroid plexus') +
-      '<text x="20" y="24" class="ori">ANT</text><text x="262" y="24" class="ori">POST</text>')
-  },
-  {
-    id: 'S3', plane: 'sagittal', title: 'S3 – Parasagittal (insula), right & left',
-    how: 'Angle further laterally, beyond the lateral ventricle, to the insula.',
-    see: ['Sylvian fissure and insula', 'Periventricular white matter', 'Cortical sulcation'],
-    look: 'Periventricular flare and cystic PVL along the length of the ventricle; sulcal maturity relative to PMA.',
-    svg: () => G.sector(
-      '<ellipse cx="150" cy="100" rx="90" ry="50" class="wm"/>' +
-      '<path d="M90 120 Q150 100 220 112 M150 106 l-10 -24 M180 108 l6 -26 M120 112 l-14 -18" class="fis"/>' +
-      G.lab(160, 104, 150, 170, 'Sylvian fissure / insula') + G.lab(110, 80, 50, 50, 'Periventricular WM') +
-      '<text x="20" y="24" class="ori">ANT</text><text x="262" y="24" class="ori">POST</text>')
-  },
-  {
-    id: 'PF', plane: 'supplementary', title: 'Posterior fontanelle',
-    how: 'Probe at the junction of sagittal and lambdoid sutures; coronal and sagittal sweeps.',
-    see: ['Occipital horns', 'Trigones', 'Posterior periventricular white matter', 'Infratentorial structures'],
-    look: 'Improves detection of occipital horn blood/clot, occipital PVL and posterior fossa pathology.',
-    svg: () => G.sector(IHF +
-      '<path d="M140 50 q-30 10 -30 50 q14 0 30 -30 z" class="csf"/><path d="M160 50 q30 10 30 50 q-14 0 -30 -30 z" class="csf"/>' +
-      G.lab(124, 80, 50, 60, 'Occipital horn') + G.lab(176, 80, 236, 60, 'Occipital horn'))
-  },
-  {
-    id: 'MF', plane: 'supplementary', title: 'Mastoid fontanelle',
-    how: 'Probe ~1 cm behind the helix, above the tragus (junction of squamosal, lambdoid and occipital sutures). Axial and coronal planes.',
-    see: ['Cerebellar hemispheres and vermis', '4th ventricle', 'Cisterna magna', 'Brainstem'],
-    look: 'Essential for cerebellar haemorrhage (often missed via AF), especially < 32 wk. Trans-cerebellar diameter (TCD) can be measured here.',
-    svg: () => G.sector(
-      '<ellipse cx="116" cy="110" rx="34" ry="26" class="cb"/><ellipse cx="184" cy="110" rx="34" ry="26" class="cb"/>' +
-      '<ellipse cx="150" cy="108" rx="12" ry="22" class="cp"/><path d="M144 84 l6 10 l6 -10 z" class="csf"/>' +
-      '<path d="M120 142 Q150 160 180 142 Q150 150 120 142" class="csf"/>' +
-      G.meas(82, 110, 218, 110, 'TCD', 150, 104) +
-      G.lab(116, 120, 50, 160, 'Cerebellar hemisphere') + G.lab(150, 88, 200, 50, '4th ventricle') + G.lab(150, 150, 210, 180, 'Cisterna magna'))
-  }
+/* ---------- Atlas: normal variants and abnormal findings ------------------ */
+/* link = Findings section the example relates to                         */
+const ATLAS = [
+  // Haemorrhage
+  { cat: 'Haemorrhage', title: 'Germinal matrix haemorrhage (Papile I)', img: 'tp-fig13-gmh', src: 'tp', fig: 13, link: 'ivh',
+    keys: ['Echogenic focus at the caudothalamic groove', 'As bright as or brighter than choroid plexus', 'Confirm in coronal and parasagittal planes'] },
+  { cat: 'Haemorrhage', title: 'GMH grade I (left) and grade II (right)', img: 'fi-fig06-gmh-grade1-2', src: 'fi', fig: 6, link: 'ivh',
+    keys: ['Bilateral caudothalamic haemorrhage', 'Grade II: blood within the ventricle, no dilatation'] },
+  { cat: 'Haemorrhage', title: 'IVH grade III with ventricular dilatation', img: 'tp-fig14-ivh-dilated', src: 'tp', fig: 14, link: 'ivh',
+    keys: ['Clot filling dilated frontal horns', 'Extends into 3rd ventricle', 'Measure VI/AHW/TOD and start PHVD chart'] },
+  { cat: 'Haemorrhage', title: 'IVH grade III – US and MRI', img: 'fi-fig07-ivh-grade3', src: 'fi', fig: 7, link: 'ivh',
+    keys: ['Haemorrhage > 50% of ventricle', 'MRI confirmation shown alongside'] },
+  { cat: 'Haemorrhage', title: 'Periventricular haemorrhagic infarction (Papile IV)', img: 'tp-fig15-pvhi', src: 'tp', fig: 15, link: 'phi',
+    keys: ['Large fan-/globular-shaped echodensity in periventricular white matter', 'Usually unilateral, same side as IVH', 'Evolves to porencephalic cyst'] },
+  { cat: 'Haemorrhage', title: 'GMH evolution → subependymal cyst', img: 'fi-fig08-gmh-evolution', src: 'fi', fig: 8, link: 'ivh',
+    keys: ['Clot liquefies, then forms a germinolytic cyst', 'Cyst at caudothalamic notch – a residual, not PVL'] },
+  { cat: 'Haemorrhage', title: 'Cerebellar haemorrhage (mastoid view)', img: 'tp-fig16-cerebellar-haem', src: 'tp', fig: 16, link: 'cbh',
+    keys: ['Often invisible through the anterior fontanelle', 'Mastoid view shows the lesion', 'MRI confirmation'] },
+  { cat: 'Haemorrhage', title: 'Thalamic haemorrhage (term)', img: 'fi-fig13-thalamic-haem', src: 'fi', fig: 13, link: 'echo',
+    keys: ['Unilateral thalamic echogenic area', 'Consider sinovenous thrombosis', 'MRI to confirm'] },
+  // White matter / HIE / stroke
+  { cat: 'White matter & HIE', title: 'Periventricular echogenicity → cystic PVL', img: 'tp-fig18-pvl', src: 'tp', fig: 18, link: 'wmi',
+    keys: ['Day 7: increased periventricular echogenicity', '3 weeks later: multiple small cysts in the same area', 'de Vries grade III if extensive'] },
+  { cat: 'White matter & HIE', title: 'PVL – early and late phases', img: 'fi-fig09-pvl-evolution', src: 'fi', fig: 9, link: 'wmi',
+    keys: ['Early: hyperechoic peritrigonal white matter', 'Late: cystic change', 'Compare brightness with choroid plexus'] },
+  { cat: 'White matter & HIE', title: 'Term HIE – periventricular echogenicity', img: 'fi-fig12-hie-periventricular', src: 'fi', fig: 12, link: 'echo',
+    keys: ['Fuzzy periventricular hyperechogenic areas', 'MRI shows the full injury pattern'] },
+  { cat: 'White matter & HIE', title: 'Term HIE – basal ganglia/thalami', img: 'tp-fig20-hie-basal-ganglia', src: 'tp', fig: 20, link: 'echo',
+    keys: ['Diffusely bright basal ganglia', 'Slit-like ventricles (oedema)', 'DWI MRI confirms'] },
+  { cat: 'White matter & HIE', title: 'Term asphyxia – cortical injury', img: 'tp-fig19-term-asphyxia-cortex', src: 'tp', fig: 19, link: 'echo',
+    keys: ['Bright, swollen cortex and subcortical white matter', 'Linear probe shows loss of grey–white differentiation'] },
+  { cat: 'White matter & HIE', title: 'Arterial ischaemic stroke (MCA)', img: 'tp-fig21-mca-stroke', src: 'tp', fig: 21, link: 'infarct',
+    keys: ['Swollen perisylvian cortex with loss of grey–white differentiation', 'Mild mass effect', 'CUS can be normal early – MRI/DWI if suspected'] },
+  // Cysts & variants
+  { cat: 'Normal variants & cysts', title: 'Cavum septum pellucidum & cavum vergae', img: 'tp-fig10-csp-cv', src: 'tp', fig: 10, link: 'anat', variant: true,
+    keys: ['Midline fluid between frontal horns (CSP)', 'Posterior extension = cavum vergae', 'Normal, especially in preterms'] },
+  { cat: 'Normal variants & cysts', title: 'Cavum septum pellucidum', img: 'fi-fig01-csp', src: 'fi', fig: 1, link: 'anat', variant: true,
+    keys: ['Do not confuse with the 3rd ventricle'] },
+  { cat: 'Normal variants & cysts', title: 'Cavum veli interpositi', img: 'fi-fig02-cavum-veli-interpositi', src: 'fi', fig: 2, link: 'anat', variant: true,
+    keys: ['Midline cyst above and behind the thalami', 'Normal variant'] },
+  { cat: 'Normal variants & cysts', title: 'Mega cisterna magna', img: 'tp-fig11-mega-cisterna', src: 'tp', fig: 11, link: 'cbh', variant: true,
+    keys: ['Large posterior fossa CSF space', 'Normal vermis, no mass effect', 'Differentiate from Dandy–Walker spectrum'] },
+  { cat: 'Normal variants & cysts', title: 'Mega cisterna magna (sagittal)', img: 'fi-fig03-mega-cisterna', src: 'fi', fig: 3, link: 'cbh', variant: true,
+    keys: ['Anechoic posterior fossa space below the vermis'] },
+  { cat: 'Normal variants & cysts', title: 'Lateral ventricle asymmetry', img: 'tp-fig08-ventricle-asymmetry', src: 'tp', fig: 8, link: 'vent', variant: true,
+    keys: ['Mild asymmetry (often left > right) is normal', 'Becomes symmetric on follow-up'] },
+  { cat: 'Normal variants & cysts', title: 'Connatal (coarctation) cysts', img: 'tp-fig09-connatal-cysts', src: 'tp', fig: 9, link: 'cysts', variant: true,
+    keys: ['Superolateral to frontal horns, at or anterior to foramen of Monro', 'Normal variant – compare locations of PVL and subependymal cysts (panel C)'] },
+  { cat: 'Normal variants & cysts', title: 'Connatal cysts – "string of pearls"', img: 'fi-fig05-connatal-cysts', src: 'fi', fig: 5, link: 'cysts', variant: true,
+    keys: ['Multiple rounded cysts along frontal horns', 'String-of-pearls on sagittal'] },
+  { cat: 'Normal variants & cysts', title: 'Choroid plexus cysts', img: 'tp-fig12-choroid-cyst', src: 'tp', fig: 12, link: 'cysts', variant: true,
+    keys: ['Small simple cysts within choroid', 'Usually incidental'] },
+  { cat: 'Normal variants & cysts', title: 'Choroid plexus cyst & split choroid', img: 'fi-fig04-choroid-cyst', src: 'fi', fig: 4, link: 'cysts', variant: true,
+    keys: ['Well-defined cyst in choroid', 'Central cleft (split choroid) is normal'] },
+  { cat: 'Normal variants & cysts', title: 'Arachnoid cyst', img: 'tp-fig28-arachnoid-cyst', src: 'tp', fig: 28, link: 'cysts',
+    keys: ['Large extra-axial cyst (middle cranial fossa)', 'Mild mass effect'] },
+  // Congenital / extra-axial
+  { cat: 'Congenital & extra-axial', title: 'Holoprosencephaly', img: 'tp-fig29-holoprosencephaly', src: 'tp', fig: 29, link: 'cong',
+    keys: ['No separation of hemispheres and thalami', 'Single ventricle, absent septum pellucidum'] },
+  { cat: 'Congenital & extra-axial', title: 'Enlarged extra-axial spaces (benign)', img: 'fi-fig15-benign-extra-axial', src: 'fi', fig: 15, link: 'extra',
+    keys: ['Increased interhemispheric/subarachnoid space', 'Macrocephaly, otherwise well', 'Colour Doppler: vessels cross the space'] }
 ];
 
 const GUIDE_TIPS = [
@@ -314,6 +257,8 @@ const GUIDE_TIPS = [
 ];
 
 const GUIDE_REFS = [
+  'Caro-Domínguez P, Lecacheux C, Hernandez-Herrera C, Llorens-Salvador R. Cranial ultrasound for beginners. Transl Pediatr 2021;10(4):1117-37.',
+  'Fichera G, et al. Neonatal cerebral ultrasound: anatomical variants and age-related diseases. J Ultrasound 2024;27:993-1002.',
   'James AC. Practical guide to neonatal cranial ultrasound (CrUS): basics. Paediatr Child Health 2018.',
   'El-Dib M, Limbrick DD, Inder T, et al. Management of post-hemorrhagic ventricular dilatation in the infant born preterm. J Pediatr 2020;226:16-27.',
   'Papile LA, et al. Incidence and evolution of subependymal and intraventricular hemorrhage. J Pediatr 1978;92:529-34.',
