@@ -47,4 +47,8 @@ Fichera G, Stramare R, Bisogno G, et al. *Neonatal cerebral ultrasound: anatomic
 | `images/fi-fig04-choroid-cyst.jpg` | Fig 4 | Choroid plexus cyst & split choroid |
 | `images/fi-fig15-benign-extra-axial.jpg` | Fig 15 | Enlarged extra-axial spaces (benign) |
 
+## Unit teaching images
+
+`images/lc-*.jpg` – ultrasound panels from the unit's CUS Overview teaching session, used with permission. Presenter video and patient photographs have been removed.
+
 Other references cited in the app (James 2018, El-Dib 2020, Beek & Groenendaal, Epelman 2006) are not open access; no images from them are included.

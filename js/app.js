@@ -607,7 +607,7 @@ function drawChart(cv, key, arr, cur) {
 
 /* ---------------- Guide: real images, atlas, viewer ---------------- */
 const imgPath = n => `images/${n}.jpg`;
-const credit = (src, fig) => `Fig ${fig}: <a href="${SOURCES[src].url}" target="_blank" rel="noopener">${SOURCES[src].short}</a> · <a href="${SOURCES[src].licUrl}" target="_blank" rel="noopener">${SOURCES[src].licence}</a>`;
+const credit = (src, fig) => !SOURCES[src].url ? '' : `Fig ${fig}: <a href="${SOURCES[src].url}" target="_blank" rel="noopener">${SOURCES[src].short}</a> · <a href="${SOURCES[src].licUrl}" target="_blank" rel="noopener">${SOURCES[src].licence}</a>`;
 let vList = [], vIdx = 0;
 
 function renderViews() {
@@ -645,7 +645,7 @@ function showV() {
   $('#vImg').src = imgPath(a.img); $('#vImg').alt = a.title;
   $('#vCount').textContent = vList.length > 1 ? `${vIdx + 1} / ${vList.length}` : '';
   $('#vCap').innerHTML = `<b>${a.title}</b>${a.variant ? ' <span class="tag-var">Normal variant</span>' : ''}
-    <ul>${(a.keys || []).map(k => `<li>${k}</li>`).join('')}</ul><div class="credit">${credit(a.src, a.fig)}. ${SOURCES[a.src].note}</div>`;
+    <ul>${(a.keys || []).map(k => `<li>${k}</li>`).join('')}</ul>${SOURCES[a.src].url ? `<div class="credit">${credit(a.src, a.fig)}. ${SOURCES[a.src].note}</div>` : ''}`;
   $('#vPrev').disabled = vIdx === 0; $('#vNext').disabled = vIdx === vList.length - 1;
   $('.v-img').scrollTo(0, 0);
 }
@@ -671,9 +671,52 @@ function initViewer() {
 }
 
 function renderCredits() {
-  $('#imgCredits').innerHTML = Object.values(SOURCES).map(s =>
+  $('#imgCredits').innerHTML = Object.values(SOURCES).filter(s => s.url).map(s =>
     `<p><a href="${s.url}" target="_blank" rel="noopener">${s.short}</a> – licensed under <a href="${s.licUrl}" target="_blank" rel="noopener">${s.licence}</a>. ${s.note}</p>`).join('') +
     '<p class="muted">Images are reproduced for non-commercial education. See IMAGE_CREDITS.md.</p>';
+}
+
+/* ---------------- Learn: step-by-step ---------------- */
+const LS_LEARN = 'neocranial.learn';
+let learn = Object.assign({ step: 0, done: [] }, load(LS_LEARN, {}));
+function renderLearn() {
+  const i = Math.min(learn.step, LEARN.length - 1), st = LEARN[i];
+  const pct = Math.round(learn.done.length / LEARN.length * 100);
+  const imgs = st.imgs.map(([img, src, fig, cap]) => ({ img, src, fig, title: cap, keys: [] }));
+  $('#guideLearn').innerHTML = `
+    <div class="card lcard">
+      <div class="lhead">
+        <select id="lJump" aria-label="Jump to step">${LEARN.map((l, k) => `<option value="${k}" ${k === i ? 'selected' : ''}>${learn.done.includes(k) ? '✓ ' : ''}${k + 1}. ${l.title}</option>`).join('')}</select>
+        <div class="lprog"><span style="width:${pct}%"></span></div>
+        <div class="muted small">Step ${i + 1} of ${LEARN.length} · ${learn.done.length} completed</div>
+      </div>
+      <h2>${i + 1}. ${st.title}</h2>
+      <p class="lgoal">${st.goal}</p>
+      ${imgs.length ? `<div class="lstrip ${imgs.length === 1 ? 'one' : ''}">${imgs.map((m, k) => `
+        <figure><button class="img-btn" data-li="${k}"><img src="${imgPath(m.img)}" alt="${esc(m.title)}" loading="lazy"><span class="zoom">⤢</span></button>
+        <figcaption>${m.title}${SOURCES[m.src].url ? `<div class="credit">${credit(m.src, m.fig)}</div>` : ''}</figcaption></figure>`).join('')}</div>
+        ${imgs.length > 1 ? '<div class="muted small swipe-hint">Swipe for more images →</div>' : ''}` : ''}
+      ${st.table ? `<table class="tbl ltable"><tr>${st.table[0].map(h => `<th>${h}</th>`).join('')}</tr>${st.table.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : ''}
+      <ul class="lpoints">${st.points.map(p => `<li>${p}</li>`).join('')}</ul>
+      ${st.check ? `<details class="lcheck"><summary>Check yourself: ${st.check[0]}</summary><p>${st.check[1]}</p></details>` : ''}
+      ${st.link === 'start' ? '<button class="btn full-w" id="lStart">Start a scan in Findings →</button>' :
+        st.link ? `<button class="btn ghost full-w" id="lEx">📷 More examples in the atlas</button>` : ''}
+    </div>
+    <div class="lnav">
+      <button class="btn ghost" id="lPrev" ${i === 0 ? 'disabled' : ''}>‹ Back</button>
+      <button class="btn" id="lNext">${i === LEARN.length - 1 ? 'Finish ✓' : 'Got it – next ›'}</button>
+    </div>`;
+  $$('#guideLearn [data-li]').forEach(b => b.onclick = () => openViewer(imgs, +b.dataset.li));
+  const go = k => { learn.step = Math.max(0, Math.min(LEARN.length - 1, k)); store(LS_LEARN, learn); renderLearn(); window.scrollTo({ top: 0 }); };
+  $('#lJump').onchange = e => go(+e.target.value);
+  $('#lPrev').onclick = () => go(i - 1);
+  $('#lNext').onclick = () => {
+    if (!learn.done.includes(i)) learn.done.push(i);
+    if (i === LEARN.length - 1) { store(LS_LEARN, learn); toast(`Completed ${learn.done.length}/${LEARN.length} steps`); renderLearn(); }
+    else go(i + 1);
+  };
+  if ($('#lStart')) $('#lStart').onclick = () => showTab('findings');
+  if ($('#lEx')) $('#lEx').onclick = () => { const list = ATLAS.filter(a => a.link === st.link); if (list.length) openViewer(list, 0); else showTab('guide'); };
 }
 
 /* ---------------- Section status (shown on collapsed headers) ---------------- */
@@ -758,10 +801,10 @@ function init() {
   buildForm();
   $('#guideTips').innerHTML = GUIDE_TIPS.map(t => `<li>${t}</li>`).join('');
   $('#guideRefs').innerHTML = GUIDE_REFS.map(t => `<li>${t}</li>`).join('');
-  renderViews(); renderAtlas(); renderCredits(); initViewer();
+  renderLearn(); renderViews(); renderAtlas(); renderCredits(); initViewer();
   $$('#guideMode button').forEach(b => b.onclick = () => {
     $$('#guideMode button').forEach(x => x.classList.toggle('on', x === b));
-    $('#guideViews').hidden = b.dataset.m !== 'views'; $('#guideAtlas').hidden = b.dataset.m !== 'atlas'; $('#guideTech').hidden = b.dataset.m !== 'tech';
+    $('#guideLearn').hidden = b.dataset.m !== 'learn'; $('#guideViews').hidden = b.dataset.m !== 'views'; $('#guideAtlas').hidden = b.dataset.m !== 'atlas'; $('#guideTech').hidden = b.dataset.m !== 'tech';
     window.scrollTo({ top: 0 });
   });
 
