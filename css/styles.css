@@ -282,3 +282,4 @@ input[type=date]{display:block;width:100%}
 #toast{opacity:0;visibility:hidden;transition:transform .25s,opacity .25s}
 #toast.show{opacity:1;visibility:visible}
 .lstrip{align-items:flex-start}
+.lref{font-size:.78rem;color:var(--muted);border-left:3px solid var(--line);padding:.2rem .6rem;margin:.4rem 0}

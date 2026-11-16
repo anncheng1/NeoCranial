@@ -698,6 +698,7 @@ function renderLearn() {
         ${imgs.length > 1 ? '<div class="muted small swipe-hint">Swipe for more images →</div>' : ''}` : ''}
       ${st.table ? `<table class="tbl ltable"><tr>${st.table[0].map(h => `<th>${h}</th>`).join('')}</tr>${st.table.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : ''}
       <ul class="lpoints">${st.points.map(p => `<li>${p}</li>`).join('')}</ul>
+      ${st.ref ? `<div class="lref">📖 Further reading: Sodhi (ed.) <i>Neonatal Ultrasound</i>, Springer 2025 – ${st.ref}</div>` : ''}
       ${st.check ? `<details class="lcheck"><summary>Check yourself: ${st.check[0]}</summary><p>${st.check[1]}</p></details>` : ''}
       ${st.link === 'start' ? '<button class="btn full-w" id="lStart">Start a scan in Findings →</button>' :
         st.link ? `<button class="btn ghost full-w" id="lEx">📷 More examples in the atlas</button>` : ''}

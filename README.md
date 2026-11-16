@@ -48,3 +48,4 @@ Clinical decision-support tool. Ventricular reference curves are digitised from 
 - Papile LA et al. J Pediatr 1978;92:529-34.
 - de Vries LS et al. Behav Brain Res 1992;49:1-6.
 - Levene MI. Arch Dis Child 1981;56:900-4.
+- Sodhi KS (ed). *Neonatal Ultrasound.* Springer 2025, Ch 1–2 – teaching points paraphrased and cited by section/figure (no images reproduced).
