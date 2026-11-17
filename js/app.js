@@ -489,7 +489,7 @@ function renderReport() {
   <h4>9. Recommendation</h4><div class="box">${esc(rec).replace(/\n/g, '<br>')}</div>
   <div class="sign">
     <div><div class="line"></div>${esc(o.reporter || settings.rep || 'Reported by')}<br><span class="small">${esc(o.designation || settings.des || '')}</span></div>
-    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v2.0</div>
+    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v2.1</div>
   </div>`;
 }
 
@@ -623,7 +623,7 @@ function drawChart(cv, key, arr, cur) {
 
 /* ---------------- Guide: real images, atlas, viewer ---------------- */
 const imgPath = n => `images/${n}.jpg`;
-const credit = (src, fig) => !SOURCES[src].url ? '' : `Fig ${fig}: <a href="${SOURCES[src].url}" target="_blank" rel="noopener">${SOURCES[src].short}</a> · <a href="${SOURCES[src].licUrl}" target="_blank" rel="noopener">${SOURCES[src].licence}</a>`;
+const credit = (src, fig) => !SOURCES[src].url ? (SOURCES[src].short ? `Image: ${SOURCES[src].short} – ${SOURCES[src].licence}` : '') : `Fig ${fig}: <a href="${SOURCES[src].url}" target="_blank" rel="noopener">${SOURCES[src].short}</a> · <a href="${SOURCES[src].licUrl}" target="_blank" rel="noopener">${SOURCES[src].licence}</a>`;
 let vList = [], vIdx = 0;
 
 function renderViews() {
@@ -649,7 +649,7 @@ function renderAtlas() {
     $('#atlasList').innerHTML = ABN_ATLAS.map(e => `
       <details class="card abn">
         <summary><img src="${imgPath(e.imgs[0][0])}" alt="" loading="lazy"><div><b>${e.title}</b><span class="muted small">${e.looks[0]}</span></div></summary>
-        <div class="lstrip">${e.imgs.map(([img, src, fig, cap], k) => `<figure><button class="img-btn" data-ab="${e.id}" data-k="${k}"><img src="${imgPath(img)}" alt="${esc(cap)}" loading="lazy"><span class="zoom">⤢</span></button><figcaption>${cap}${SOURCES[src].url ? `<div class="credit">${credit(src, fig)}</div>` : ''}</figcaption></figure>`).join('')}</div>
+        <div class="lstrip">${e.imgs.map(([img, src, fig, cap], k) => `<figure><button class="img-btn" data-ab="${e.id}" data-k="${k}"><img src="${imgPath(img)}" alt="${esc(cap)}" loading="lazy"><span class="zoom">⤢</span></button><figcaption>${cap}${credit(src, fig) ? `<div class="credit">${credit(src, fig)}</div>` : ''}</figcaption></figure>`).join('')}</div>
         <div class="abn-sec"><h4>📍 Where to look</h4><p>${e.where}</p></div>
         <div class="abn-sec"><h4>👁 What it looks like</h4><ul>${e.looks.map(x => `<li>${x}</li>`).join('')}</ul></div>
         <div class="abn-sec"><h4>📏 How to grade / describe</h4><p>${e.grade}</p></div>
@@ -680,7 +680,7 @@ function showV() {
   $('#vImg').src = imgPath(a.img); $('#vImg').alt = a.title;
   $('#vCount').textContent = vList.length > 1 ? `${vIdx + 1} / ${vList.length}` : '';
   $('#vCap').innerHTML = `<b>${a.title}</b>${a.variant ? ' <span class="tag-var">Normal variant</span>' : ''}
-    <ul>${(a.keys || []).map(k => `<li>${k}</li>`).join('')}</ul>${SOURCES[a.src].url ? `<div class="credit">${credit(a.src, a.fig)}. ${SOURCES[a.src].note}</div>` : ''}`;
+    <ul>${(a.keys || []).map(k => `<li>${k}</li>`).join('')}</ul>${credit(a.src, a.fig) ? `<div class="credit">${credit(a.src, a.fig)}${SOURCES[a.src].note ? '. ' + SOURCES[a.src].note : ''}</div>` : ''}`;
   $('#vPrev').disabled = vIdx === 0; $('#vNext').disabled = vIdx === vList.length - 1;
   $('.v-img').scrollTo(0, 0);
 }
@@ -706,7 +706,7 @@ function initViewer() {
 }
 
 function renderCredits() {
-  $('#imgCredits').innerHTML = Object.values(SOURCES).filter(s => s.url).map(s =>
+  $('#imgCredits').innerHTML = Object.values(SOURCES).filter(s => s.url || s.short).map(s => !s.url ? `<p>${s.short} – ${s.licence}.</p>` :
     `<p><a href="${s.url}" target="_blank" rel="noopener">${s.short}</a> – licensed under <a href="${s.licUrl}" target="_blank" rel="noopener">${s.licence}</a>. ${s.note}</p>`).join('') +
     '<p class="muted">Images are reproduced for non-commercial education. See IMAGE_CREDITS.md.</p>';
 }
@@ -729,7 +729,7 @@ function renderLearn() {
       <p class="lgoal">${st.goal}</p>
       ${imgs.length ? `<div class="lstrip ${imgs.length === 1 ? 'one' : ''}">${imgs.map((m, k) => `
         <figure><button class="img-btn" data-li="${k}"><img src="${imgPath(m.img)}" alt="${esc(m.title)}" loading="lazy"><span class="zoom">⤢</span></button>
-        <figcaption>${m.title}${SOURCES[m.src].url ? `<div class="credit">${credit(m.src, m.fig)}</div>` : ''}</figcaption></figure>`).join('')}</div>
+        <figcaption>${m.title}${credit(m.src, m.fig) ? `<div class="credit">${credit(m.src, m.fig)}</div>` : ''}</figcaption></figure>`).join('')}</div>
         ${imgs.length > 1 ? '<div class="muted small swipe-hint">Swipe for more images →</div>' : ''}` : ''}
       ${st.table ? `<table class="tbl ltable"><tr>${st.table[0].map(h => `<th>${h}</th>`).join('')}</tr>${st.table.slice(1).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : ''}
       <ul class="lpoints">${st.points.map(p => `<li>${p}</li>`).join('')}</ul>
@@ -1182,7 +1182,7 @@ function wzStepHTML() {
       <div class="vhead"><span class="gtag ${v.plane === 'cor' ? 'coronal' : 'sagittal'}">${v.group}</span><h3>${v.title}</h3></div>
       <button type="button" class="img-btn" data-img="${v.img}" data-src="${v.src}" data-fig="${v.fig}" data-t="${esc(v.title)}"><img src="images/${v.img}.jpg" alt="Reference ${v.title}" loading="lazy"><span class="zoom">⤢</span></button>
       <div class="credit">Reference image – ${v.panel}${credit(v.src, v.fig) ? ' · ' + credit(v.src, v.fig) : ''}</div>
-      ${v.extra ? `<button type="button" class="link-btn" data-img="${v.extra}" data-src="${v.extra.startsWith('tp') ? 'tp' : 'lc'}" data-fig="${v.extra.startsWith('tp') ? 2 : 0}" data-t="${esc(v.title)} – additional reference">+ another reference image</button>` : ''}
+      ${v.extra ? `<button type="button" class="link-btn" data-img="${v.extra}" data-src="${v.extraSrc || (v.extra.startsWith('tp') ? 'tp' : 'lc')}" data-fig="${v.extraFig ?? (v.extra.startsWith('tp') ? 2 : 0)}" data-t="${esc(v.title)} – additional reference">+ another reference image</button>` : ''}
       <div class="probe-row">${probeSVG(v.plane, v.tilt, v.id)}<div><div class="sub">Probe orientation</div><p class="small">${v.probe}</p></div></div>
       <div class="sub">Identify these structures</div>
       <ul class="tight small">${v.find.map(t => `<li>${t}</li>`).join('')}</ul>
@@ -1200,7 +1200,7 @@ function wzStepHTML() {
         <h3>${c.title}</h3><div class="muted small">${c.plane}</div>
         <details class="calguide"><summary>How to place the callipers</summary>
           <div class="cal-wrap">${c.svg}</div><ol class="small tight">${c.steps.map(s => `<li>${s}</li>`).join('')}</ol>
-          <button type="button" class="link-btn" data-img="${c.img}" data-src="lc" data-fig="0" data-t="${c.title} – real example">See a real example</button></details>
+          <button type="button" class="link-btn" data-img="${c.img}" data-src="${c.src || 'lc'}" data-fig="0" data-t="${c.title} – real example">See a real example</button></details>
         <div class="lr2">${inp(k + 'R', 'Right (mm)', 'number', 'step="0.1" inputmode="decimal"')}${inp(k + 'L', 'Left (mm)', 'number', 'step="0.1" inputmode="decimal"')}</div>
       </div>`; }).join('')}
     <div class="grid">${inp('v3', '3rd ventricle (mm) – optional', 'number', 'step="0.1" inputmode="decimal"')}${inp('hc', 'Head circumference (cm)', 'number', 'step="0.1" inputmode="decimal"')}</div>

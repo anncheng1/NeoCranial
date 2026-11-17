@@ -33,7 +33,7 @@ function probeSVG(plane, deg, label) {
 const VIEW_STEPS = [
   { id: 'C1', group: 'Coronal', title: 'C1 – Frontal lobes', plane: 'cor', tilt: 40,
     img: 'tp-fig01-coronal-normal', src: 'tp', fig: 1, panel: 'Panel A', extra: 'lc-coronal-c2',
-    probe: 'Probe across the fontanelle, marker to the baby’s RIGHT. Tilt steeply forward, aiming toward the orbits.',
+    probe: 'Probe across the fontanelle (coronal). Set it so the baby’s RIGHT is on the screen LEFT – which side the probe marker goes depends on your machine/unit convention. Tilt steeply forward, aiming toward the orbits.',
     find: ['Interhemispheric fissure in the midline', 'Frontal lobes, symmetrical', 'Orbital roofs at the bottom'],
     check: ['Midline vertical and central', 'Both sides symmetrical', 'No frontal horns yet (you are in front of them)'] },
   { id: 'C2', group: 'Coronal', title: 'C2 – Frontal horns', plane: 'cor', tilt: 25,
@@ -42,7 +42,7 @@ const VIEW_STEPS = [
     find: ['Frontal horns (black, comma-shaped)', 'Cavum septum pellucidum between them', 'Corpus callosum above', 'Caudate heads below the horns'],
     check: ['Both frontal horns seen', 'CSP present (note if absent)', 'No echogenic material in the frontal horns'] },
   { id: 'C3', group: 'Coronal', title: 'C3 – Foramen of Monro', plane: 'cor', tilt: 10,
-    img: 'tp-fig01-coronal-normal', src: 'tp', fig: 1, panel: 'Panel C', extra: 'lc-vi-measure',
+    img: 'tp-fig01-coronal-normal', src: 'tp', fig: 1, panel: 'Panel C', extra: 'cg-vi-ahw-dilated', extraSrc: 'cg', extraFig: 0,
     probe: 'Probe almost vertical. Find the small midline 3rd ventricle below the CSP.',
     find: ['Bodies of lateral ventricles', '3rd ventricle (small midline slit)', 'Sylvian fissures (Y-shape at term, open in preterm)'],
     check: ['This is the plane for VI and AHW – freeze and measure here', '3rd ventricle < 3 mm', 'Look at the caudothalamic region for GMH'] },
@@ -57,13 +57,13 @@ const VIEW_STEPS = [
     find: ['Bright choroid glomus filling each trigone', 'Peritrigonal white matter'],
     check: ['Choroid symmetrical, smooth', 'Peritrigonal "blush" LESS bright than choroid', 'Ventricles diverge (parallel = think corpus callosum anomaly)'] },
   { id: 'C6', group: 'Coronal', title: 'C6 – Occipital lobes', plane: 'cor', tilt: -38,
-    img: 'tp-fig01-coronal-normal', src: 'tp', fig: 1, panel: 'Panel F',
+    img: 'cg-c6-parieto-occipital', src: 'cg', fig: 0, panel: 'Labelled parieto-occipital view', extra: 'tp-fig01-coronal-normal', extraSrc: 'tp', extraFig: 1,
     probe: 'Tilt steeply backwards.',
     find: ['Parieto-occipital white matter', 'Interhemispheric fissure', 'Sulcal pattern'],
     check: ['White matter symmetrical', 'No bright patches or cysts above the ventricles'] },
   { id: 'S1', group: 'Sagittal', title: 'S1 – Midline sagittal', plane: 'sag', tilt: 0,
     img: 'lc-sagittal-s1', src: 'lc', fig: 0, panel: 'Midline', extra: 'tp-fig02-sagittal-normal',
-    probe: 'Rotate 90°, marker toward the NOSE (front of brain on screen left). Keep the probe in the exact midline.',
+    probe: 'Rotate 90° to sagittal so the FRONT of the brain is on the screen LEFT (marker toward the nose or the back, depending on your machine/unit convention). Keep the probe in the exact midline.',
     find: ['Corpus callosum (curved dark band)', 'CSP below it', '3rd and 4th ventricles', 'Cerebellar vermis, cisterna magna'],
     check: ['Whole corpus callosum seen, genu to splenium', 'Vermis bright and lobulated', 'Cisterna magna not enlarged'] },
   { id: 'S2R', group: 'Sagittal', title: 'S2 – Right parasagittal (ventricle)', plane: 'sag', tilt: 14,
@@ -77,12 +77,12 @@ const VIEW_STEPS = [
     find: ['Whole C-shaped lateral ventricle', 'Caudothalamic groove', 'Choroid plexus'],
     check: ['Compare with the right side', 'Freeze for TOD'] },
   { id: 'S3R', group: 'Sagittal', title: 'S3 – Right parasagittal (insula)', plane: 'sag', tilt: 28,
-    img: 'tp-fig02-sagittal-normal', src: 'tp', fig: 2, panel: 'Panel C',
+    img: 'cg-s3-insula', src: 'cg', fig: 0, panel: 'Labelled Sylvian fissure and insula', extra: 'tp-fig02-sagittal-normal', extraSrc: 'tp', extraFig: 2,
     probe: 'Tilt further to the RIGHT (~25–30°), beyond the ventricle.',
     find: ['Sylvian fissure / insula', 'Periventricular white matter along the ventricle'],
     check: ['White matter homogeneous, no bright patches or cysts'] },
   { id: 'S3L', group: 'Sagittal', title: 'S3 – Left parasagittal (insula)', plane: 'sag', tilt: -28,
-    img: 'tp-fig02-sagittal-normal', src: 'tp', fig: 2, panel: 'Panel C',
+    img: 'cg-s3-insula', src: 'cg', fig: 0, panel: 'Labelled Sylvian fissure and insula (right side shown)', extra: 'tp-fig02-sagittal-normal', extraSrc: 'tp', extraFig: 2,
     probe: 'Tilt further to the LEFT (~25–30°).',
     find: ['Sylvian fissure / insula', 'Periventricular white matter'],
     check: ['Compare with the right side'] }
@@ -107,7 +107,7 @@ const TECH_CHECK = [
   ['tc_probe', 'Microconvex / sector probe (7–10 MHz preterm, ~5 MHz term)'],
   ['tc_preset', 'Neonatal head preset; depth to skull base'],
   ['tc_gain', 'Gain: parenchyma mid-grey, CSF black; TGC adjusted'],
-  ['tc_label', 'Images labelled (R/L, plane) and cine loops saved']
+  ['tc_label', 'Images labelled (2 patient identifiers, R/L, plane); at least 11 images stored (6 coronal + 5 sagittal)']
 ];
 
 /* ---------- Step 5: structure-by-structure findings ------------------------
@@ -163,19 +163,19 @@ const STRUCTURES = [
 const CALIPER = {
   VI: { title: 'Ventricular index (VI)', plane: 'Coronal C3 – foramen of Monro',
     steps: ['Freeze the C3 image with the 3rd ventricle visible.', 'Place calliper 1 on the falx (midline).', 'Place calliper 2 on the OUTER (lateral) wall of the lateral ventricle, horizontally.', 'Repeat on the other side.'],
-    img: 'lc-vi-measure',
+    img: 'lc-vi-measure', src: 'lc',
     svg: `<svg viewBox="0 0 240 150" class="cal-svg"><path d="M120 6 L10 120 A150 150 0 0 0 230 120 Z" class="sec"/><line x1="120" y1="10" x2="120" y2="130" class="ihf"/>
       <path d="M112 50 q-30 4 -36 26 q20 6 36 -10 z" class="csf"/><path d="M128 50 q30 4 36 26 q-20 6 -36 -10 z" class="csf"/><rect x="117" y="84" width="6" height="16" rx="2" class="csf"/>
       <line x1="120" y1="64" x2="76" y2="64" class="cal anim"/><circle cx="120" cy="64" r="3" class="cp"/><circle cx="76" cy="64" r="3" class="cp"/><text x="80" y="58" class="ct">VI</text></svg>` },
   AHW: { title: 'Anterior horn width (AHW)', plane: 'Coronal C3 – same image as VI',
     steps: ['Use the same frozen C3 image.', 'Measure the frontal horn diagonally at its WIDEST point, perpendicular to its long axis.', 'Repeat on the other side.'],
-    img: 'lc-vi-ahw-tod',
+    img: 'cg-vi-ahw-dilated', src: 'cg',
     svg: `<svg viewBox="0 0 240 150" class="cal-svg"><path d="M120 6 L10 120 A150 150 0 0 0 230 120 Z" class="sec"/><line x1="120" y1="10" x2="120" y2="130" class="ihf"/>
       <path d="M112 50 q-30 4 -36 26 q20 6 36 -10 z" class="csf"/><path d="M128 50 q30 4 36 26 q-20 6 -36 -10 z" class="csf"/>
       <line x1="104" y1="52" x2="92" y2="72" class="cal anim"/><circle cx="104" cy="52" r="3" class="cp"/><circle cx="92" cy="72" r="3" class="cp"/><text x="64" y="48" class="ct">AHW</text></svg>` },
   TOD: { title: 'Thalamo-occipital distance (TOD)', plane: 'Parasagittal S2 – whole ventricle in view',
     steps: ['Freeze S2 with the whole C-shaped ventricle.', 'Calliper 1: outermost back edge of the thalamus (where choroid meets it).', 'Calliper 2: tip of the occipital horn.', 'Repeat on the other side.'],
-    img: 'lc-vi-ahw-tod',
+    img: 'lc-vi-ahw-tod', src: 'lc',
     svg: `<svg viewBox="0 0 240 150" class="cal-svg"><path d="M120 6 L10 120 A150 150 0 0 0 230 120 Z" class="sec"/>
       <path d="M40 72 Q60 40 120 42 Q182 44 200 82 Q204 100 190 106 Q182 90 168 80 Q140 62 100 66 Q70 70 58 86 Z" class="csf"/>
       <ellipse cx="118" cy="92" rx="24" ry="16" class="gm"/>
@@ -202,7 +202,7 @@ const ABN_ATLAS = [
     pitfalls: ['Not the same as PVL (PVL is bilateral and patchy)', 'Peritrigonal blush is symmetric and less bright than choroid'],
     senior: 'Always – same day.' },
   { id: 'phvd', title: 'Ventricular dilatation / PHVD',
-    imgs: [['tp-fig14-ivh-dilated', 'tp', 14, 'Dilated ventricles with clot'], ['lc-vi-measure', 'lc', 0, 'VI measurement']],
+    imgs: [['cg-vi-ahw-dilated', 'cg', 0, 'Dilated ventricles – VI 14.9/15.1, AHW 10.6/11.1 mm'], ['tp-fig14-ivh-dilated', 'tp', 14, 'Dilated ventricles with clot'], ['lc-vi-measure', 'lc', 0, 'VI measurement']],
     where: 'Coronal C3 (VI, AHW) and parasagittal S2 (TOD); occipital horns enlarge first.',
     looks: ['Rounded ("ballooned") frontal horns', 'Enlarged 3rd ventricle', 'Choroid "dangling" in a large ventricle'],
     grade: 'VI, AHW and TOD against PMA-specific reference charts; plot serially.',
@@ -237,7 +237,7 @@ const ABN_ATLAS = [
     pitfalls: ['CUS can be normal early – a normal scan does not exclude stroke'],
     senior: 'Always.' },
   { id: 'cysts', title: 'Which cyst is it?',
-    imgs: [['lc-cyst-locations', 'lc', 0, 'Cyst position guide'], ['tp-fig09-connatal-cysts', 'tp', 9, 'Connatal cysts'], ['fi-fig08-gmh-evolution', 'fi', 8, 'Subependymal cyst after GMH'], ['tp-fig12-choroid-cyst', 'tp', 12, 'Choroid plexus cysts']],
+    imgs: [['lc-cyst-locations', 'lc', 0, 'Cyst position guide'], ['tp-fig09-connatal-cysts', 'tp', 9, 'Connatal cysts'], ['cg-connatal-cor', 'cg', 0, 'Connatal cysts – coronal'], ['cg-choroid-cyst-cor', 'cg', 0, 'Choroid plexus cyst – coronal'], ['cg-choroid-cyst-sag', 'cg', 0, 'Choroid plexus cyst – parasagittal (arrow)'], ['fi-fig08-gmh-evolution', 'fi', 8, 'Subependymal cyst after GMH'], ['tp-fig12-choroid-cyst', 'tp', 12, 'Choroid plexus cysts']],
     where: 'Relate the cyst to the foramen of Monro and the upper border of the lateral ventricle.',
     looks: ['Connatal: outer angle of frontal horns, in front of the foramen of Monro (normal)', 'Germinolytic / subependymal: caudothalamic notch, behind the foramen of Monro', 'PVL: multiple, above and beside the ventricle', 'Porencephalic: single, large, after PVHI'],
     grade: 'Describe location, number and size.',

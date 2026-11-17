@@ -155,7 +155,8 @@ const SOURCES = {
   fi: { short: 'Fichera G et al. J Ultrasound 2024;27:993-1002',
         url: 'https://doi.org/10.1007/s40477-024-00914-8', licence: 'CC BY 4.0',
         licUrl: 'https://creativecommons.org/licenses/by/4.0/', note: 'Resized from original.' },
-  lc: { short: '', url: '', licence: '', licUrl: '', note: '' }   // unit teaching images (CUS Overview lecture)
+  lc: { short: '', url: '', licence: '', licUrl: '', note: '' },  // unit teaching images (CUS Overview lecture)
+  cg: { short: 'Cranial Ultrasound Guidelines, Dr O. Ejiwunmi (Oct 2025)', url: '', licence: 'used with permission', licUrl: '', note: '' }
 };
 
 /* ---------- Normal views (real images) ------------------------------------ */
@@ -247,6 +248,14 @@ const ATLAS = [
     keys: ['Small anechoic cyst in the choroid glomus (< 1 cm)', 'Single and isolated: incidental', 'Multiple, bilateral or > 1 cm: look for other anomalies'] },
   { cat: 'Normal variants & cysts', title: 'Choroid plexus cyst & split choroid', img: 'fi-fig04-choroid-cyst', src: 'fi', fig: 4, link: 'cysts', variant: true,
     keys: ['Well-defined cyst in choroid', 'Split choroid (central cleft) is a normal variant', 'Colour Doppler: choroid has flow, clot does not'] },
+  { cat: 'Normal variants & cysts', title: 'Connatal cysts – coronal', img: 'cg-connatal-cor', src: 'cg', fig: 0, link: 'cysts', variant: true,
+    keys: ['Rounded cysts at the superolateral margins of the frontal horns', 'Normal variant'] },
+  { cat: 'Normal variants & cysts', title: 'Choroid plexus cyst – coronal', img: 'cg-choroid-cyst-cor', src: 'cg', fig: 0, link: 'cysts', variant: true,
+    keys: ['Small anechoic cyst within the choroid', 'Usually incidental if single and < 1 cm'] },
+  { cat: 'Normal variants & cysts', title: 'Choroid plexus cyst – parasagittal', img: 'cg-choroid-cyst-sag', src: 'cg', fig: 0, link: 'cysts', variant: true,
+    keys: ['Cyst in the choroid near the caudothalamic groove (arrow)'] },
+  { cat: 'Haemorrhage', title: 'Dilated ventricles with VI and AHW measured', img: 'cg-vi-ahw-dilated', src: 'cg', fig: 0, link: 'vent',
+    keys: ['Rounded, ballooned frontal horns', 'On-screen VI 14.9 / 15.1 mm, AHW 10.6 / 11.1 mm', 'Plot on PHVD chart; senior review'] },
   { cat: 'Normal variants & cysts', title: 'Arachnoid cyst', img: 'tp-fig28-arachnoid-cyst', src: 'tp', fig: 28, link: 'cysts',
     keys: ['Large extra-axial cyst (middle cranial fossa)', 'Mild mass effect'] },
   { cat: 'Normal variants & cysts', title: 'Where is the cyst? (position guide)', img: 'lc-cyst-locations', src: 'lc', fig: 0, link: 'cysts',
@@ -351,7 +360,7 @@ const LEARN = [
     ref: "Ch 1 \u00a71.4.1\u20131.4.3, \u00a71.5.1, Figs 1.26\u20131.34",
     check: ['Is a bulky choroid plexus in a 28-week infant abnormal?', 'No – it is a normal preterm finding.'] },
   { title: 'Measure the ventricles', goal: 'VI, AHW and TOD every time ventricles look big or IVH is present.',
-    imgs: [['lc-vi-measure', 'lc', 0, 'VI: midline (falx) → lateral wall of ventricle'], ['lc-vi-ahw-tod', 'lc', 0, 'Coronal – VI, AHW; parasagittal – TOD']],
+    imgs: [['lc-vi-measure', 'lc', 0, 'VI: midline (falx) → lateral wall of ventricle'], ['cg-vi-ahw-dilated', 'cg', 0, 'Measured on screen: VI 14.9/15.1 mm, AHW 10.6/11.1 mm – dilated ventricles'], ['lc-vi-ahw-tod', 'lc', 0, 'Coronal – VI, AHW; parasagittal – TOD']],
     points: ["VI (Levene): coronal at foramen of Monro, falx → lateral wall of lateral ventricle, each side; plot against PMA.",
       "AHW: same plane, diagonal width of frontal horn (normal ~1–3 mm; 6–10 mm moderate, > 10 mm severe).",
       "TOD: parasagittal, back of thalamus → tip of occipital horn (normal ~15–20 mm). Occipital horns dilate first.",
@@ -387,7 +396,7 @@ const LEARN = [
     ref: "Ch 2 \u00a72.4.1.1\u20132.4.1.2, Table 2.2, Figs 2.4\u20132.7",
     check: ['IVH fills > 50% of the ventricle on parasagittal view. Grade?', 'Grade III.'], link: 'ivh' },
   { title: 'Cysts – where is it?', goal: 'Use cyst position to tell benign from pathological.',
-    imgs: [['lc-cyst-locations', 'lc', 0, 'Cyst position relative to the upper lateral ventricle'], ['tp-fig09-connatal-cysts', 'tp', 9, 'Connatal cysts (normal variant)'], ['fi-fig08-gmh-evolution', 'fi', 8, 'GMH → subependymal cyst']],
+    imgs: [['lc-cyst-locations', 'lc', 0, 'Cyst position relative to the upper lateral ventricle'], ['cg-connatal-cor', 'cg', 0, 'Connatal cysts beside the frontal horns (coronal)'], ['cg-choroid-cyst-sag', 'cg', 0, 'Choroid plexus cyst (arrow), parasagittal'], ['tp-fig09-connatal-cysts', 'tp', 9, 'Connatal cysts (normal variant)'], ['fi-fig08-gmh-evolution', 'fi', 8, 'GMH → subependymal cyst']],
     points: ["Connatal cysts: at the outer angle of the frontal horns, in front of the foramen of Monro – normal variant.",
       "Germinolytic / subependymal cysts: at the caudothalamic notch, behind the foramen of Monro – often after GMH.",
       "Cystic PVL: multiple small cysts above and lateral to the ventricles, mostly posterior.",

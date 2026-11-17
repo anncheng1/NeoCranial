@@ -1,7 +1,13 @@
 /* NeoCranial USG service worker – offline cache. Bump VERSION when files change. */
-const VERSION = 'neocranial-v2.0.0';
+const VERSION = 'neocranial-v2.1.0';
 const ASSETS = ['./', './index.html', './css/styles.css', './js/data.js', './js/guided.js', './js/maturity.js', './js/app.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
+  './images/cg-c6-parieto-occipital.jpg',
+  './images/cg-choroid-cyst-cor.jpg',
+  './images/cg-choroid-cyst-sag.jpg',
+  './images/cg-connatal-cor.jpg',
+  './images/cg-s3-insula.jpg',
+  './images/cg-vi-ahw-dilated.jpg',
   './images/fi-fig01-csp.jpg',
   './images/fi-fig02-cavum-veli-interpositi.jpg',
   './images/fi-fig03-mega-cisterna.jpg',

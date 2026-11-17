@@ -51,4 +51,8 @@ Fichera G, Stramare R, Bisogno G, et al. *Neonatal cerebral ultrasound: anatomic
 
 `images/lc-*.jpg` – ultrasound panels from the unit's CUS Overview teaching session, used with permission. Presenter video and patient photographs have been removed.
 
+## Cranial Ultrasound Guidelines (Dr Olayinka Ejiwunmi, Oct 2025)
+
+Used with the author's permission. Only the unit's own scans are included: `images/cg-*.jpg` (VI/AHW measurement, C6 parieto-occipital, S3 insula, choroid plexus cysts, connatal cysts). Figures in that guideline taken from textbooks or other publishers (e.g. Springer *Neonatal Cranial Ultrasound* figures, Pearson anatomy illustration) are **not** included.
+
 Other references cited in the app (James 2018, El-Dib 2020, Beek & Groenendaal, Epelman 2006) are not open access; no images from them are included.
