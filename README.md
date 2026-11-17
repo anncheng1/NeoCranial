@@ -16,6 +16,11 @@ Offline-capable web app (PWA) for neonatal cranial ultrasound, built for the NIC
    - White matter injury / cystic PVL (de Vries grade I–IV)
    - Cerebellar haemorrhage (punctate / limited / massive)
    - **PHVD monitoring** – serial VI, AHW, TOD plotted on risk-zone charts per MRN (CSV export)
+5. **NeoMaturity – Brain Maturation & GA Assessment** (Maturity tab)
+   - **Transverse cerebellar diameter:** right/left hemisphere, up to 3 maximum TCD readings (mean used). Plotted on a GA growth chart (mean ± 1.96 SD) with estimated GA, plausible range, and z-score/centile at the clinical GA. Selectable references: Prasad 2025 (≤ 10 d or ≤ 21 d, 22–40 wk), Davies 1999 regression (23–32 wk), Imamoglu 2013 (slot – published values must be entered; not open access). Warns if day of life exceeds the reference window.
+   - **Ultrasound Score of Brain Development (Stein 2023):** interopercular opening, insular height, cingulate sulcus depth → 0–6 score with the published PMA for that score; flags ceiling (≈ 36 wk) and absent sulcus.
+   - **Additional markers:** cingulate gyrus height (trend only, no reference values), visual sulcation stage, measurement schematic.
+   - Each method is shown separately with its source. **No combined GA is generated**; concordance is not claimed.
 4. **Report generator** – formatted A4 report (patient details → recommendation) with auto-generated, editable impression and recommendation. Print / save PDF, copy text, download .txt, save/load case (.json).
 
 ## iPhone use
@@ -48,4 +53,8 @@ Clinical decision-support tool. Ventricular reference curves are digitised from 
 - Papile LA et al. J Pediatr 1978;92:529-34.
 - de Vries LS et al. Behav Brain Res 1992;49:1-6.
 - Levene MI. Arch Dis Child 1981;56:900-4.
+- Stein A, Sody E, Bruns N, Felderhoff-Müser U. Development of an ultrasound scoring system to describe brain maturation in preterm infants. AJNR 2023;44(7):846-52.
+- Prasad et al. Gestational age determination in neonates – transcerebellar ultrasound measurements help: a retrospective study of 671 neonates. Pediatr Radiol 2025. doi:10.1007/s00247-025-06426-9
+- Davies MW, Swaminathan M, Betheras FR. J Paediatr Child Health 1999;35:346-9.
+- Imamoglu EY, Gursoy T, Ovali F, et al. Early Hum Dev 2013;89:919-23 (values not included).
 - Sodhi KS (ed). *Neonatal Ultrasound.* Springer 2025, Ch 1–2 – teaching points paraphrased and cited by section/figure (no images reproduced).

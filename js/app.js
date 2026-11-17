@@ -33,7 +33,7 @@ function buildForm() {
 /* ---------------- Serialise / restore ---------------- */
 function readForm() {
   const o = {};
-  $$('#form [data-k]').forEach(el => {
+  $$('#form [data-k], #nmForm [data-k]').forEach(el => {
     o[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
   });
   $$('#form [data-g]').forEach(el => {
@@ -45,7 +45,7 @@ function readForm() {
   return o;
 }
 function writeForm(o) {
-  $$('#form [data-k]').forEach(el => {
+  $$('#form [data-k], #nmForm [data-k]').forEach(el => {
     const v = o[el.dataset.k];
     if (el.type === 'checkbox') el.checked = !!v;
     else if (v !== undefined) el.value = v;
@@ -472,11 +472,12 @@ function renderReport() {
   <p class="small">${[r.v3 != null ? `3rd ventricle ${fmt1(r.v3)} mm` : '', o.v4 && o.v4 !== 'Normal' ? `4th ventricle ${o.v4.toLowerCase()}` : '', r.tcd != null ? `TCD ${fmt1(r.tcd)} mm` : '', r.cm != null ? `cisterna magna ${fmt1(r.cm)} mm` : '', o.hc ? `HC ${o.hc} cm` : ''].filter(Boolean).join(' · ')}</p>
   <h4>7. Abnormalities</h4>
   <table class="rt">${abnormalityRows(o, r).map(([k, val, abn]) => tr(k, val, abn)).join('')}${o.notes ? tr('Additional', o.notes) : ''}</table>
+  ${maturityReportHTML()}
   <h4>8. Impression</h4><div class="box ${r.abnormal ? 'abn-b' : ''}">${esc(imp).replace(/\n/g, '<br>')}</div>
   <h4>9. Recommendation</h4><div class="box">${esc(rec).replace(/\n/g, '<br>')}</div>
   <div class="sign">
     <div><div class="line"></div>${esc(o.reporter || settings.rep || 'Reported by')}<br><span class="small">${esc(o.designation || settings.des || '')}</span></div>
-    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v1.2</div>
+    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v1.5</div>
   </div>`;
 }
 
@@ -499,6 +500,7 @@ function reportText() {
   });
   L.push('', 'ABNORMALITIES:');
   abnormalityRows(o, r).forEach(([k, val]) => L.push(`  ${k}: ${val}`));
+  const mt = maturityText(); if (mt) L.push('', 'BRAIN MATURATION & GA ASSESSMENT (NeoMaturity):', mt);
   L.push('', 'IMPRESSION:', $('#impression').value, '', 'RECOMMENDATION:', $('#recommendation').value, '');
   L.push(`Reported by: ${o.reporter || settings.rep || ''} ${o.designation || settings.des || ''}`);
   return L.join('\n');
@@ -755,17 +757,176 @@ function setNormal() {
   update(); toast('Set to normal – add measurements if taken');
 }
 
+/* ---------------- NeoMaturity ---------------- */
+function nmVals() {
+  const o = S, t = ['nm_t1', 'nm_t2', 'nm_t3'].map(k => num(o[k])).filter(v => v != null);
+  const gaW = num(o.gaW), gaD = num(o.gaD) || 0;
+  const status = o.nm_gaStatus || 'known';
+  const ga = gaW != null && status !== 'unknown' ? gaW + gaD / 7 : null;
+  return {
+    tcds: t, tcd: t.length ? t.reduce((a, b) => a + b, 0) / t.length : null,
+    hR: num(o.nm_hR), hL: num(o.nm_hL), ref: o.nm_ref || 'prasad10', status,
+    ctx: { dol: I.a.pna, ga, pma: I.a.pma },
+    usbdIn: { io: num(o.nm_io), ins: num(o.nm_ins), cs: o.nm_csVis === 'absent' ? 0 : num(o.nm_cs) },
+    cgC: num(o.nm_cgC), cgS: num(o.nm_cgS), sulc: o.nm_sulc || ''
+  };
+}
+function nmCompute() {
+  const v = nmVals();
+  const tcd = v.tcd != null ? tcdEstimate(v.ref, v.tcd, v.ctx) : null;
+  const usbd = usbdCalc(v.usbdIn);
+  if (usbd.complete && v.ctx.pma != null && v.status !== 'unknown') {
+    usbd.pmaIn = v.ctx.pma >= usbd.ref.lo - 1e-6 && v.ctx.pma <= usbd.ref.hi + 1e-6;
+  }
+  return { v, tcd, usbd };
+}
+const fmtMm = x => x == null ? '–' : (Math.round(x * 10) / 10).toFixed(1);
+
+function renderMaturity() {
+  const { v, tcd, usbd } = nmCompute(), r = TCD_REFS[v.ref], a = I.a;
+  $('#nmCtx').innerHTML = `<span>DOB <b>${fmtDate(S.dob)}</b></span><span>Scan <b>${fmtDate(S.scanDate)}</b></span>
+    <span>Day of life <b>${a.pna ?? '–'}</b></span><span>GA (clinical) <b>${a.gaTxt}</b></span><span>PMA <b>${a.pmaTxt}</b></span>
+    ${a.pna == null ? '<span class="warn">Enter DOB and scan date in Findings → Patient details</span>' : ''}`;
+
+  // A. TCD
+  const hemi = v.hR != null && v.hL != null;
+  let h = '';
+  if (v.tcd == null) h = '<p class="muted small">Enter at least one maximum TCD measurement.</p>';
+  else {
+    h += `<div class="kv"><span>Mean of ${v.tcds.length} measurement${v.tcds.length > 1 ? 's' : ''}</span><b>${fmtMm(v.tcd)} mm</b></div>`;
+    if (v.tcds.length > 1) { const sp = Math.max(...v.tcds) - Math.min(...v.tcds); h += `<div class="kv"><span>Spread between measurements</span><span>${fmtMm(sp)} mm${sp > 2 ? ' <span class="badge z-moderate">re-measure?</span>' : ''}</span></div>`; }
+    if (hemi) h += `<div class="kv"><span>Hemispheres R / L</span><span>${fmtMm(v.hR)} / ${fmtMm(v.hL)} mm · difference ${fmtMm(Math.abs(v.hR - v.hL))} mm</span></div>`;
+    if (tcd.unavailable) h += `<p class="warn small">${esc(r.note)}</p>`;
+    else {
+      const est = tcd.est != null ? `${wkTxt(tcd.est)} wk` : '–';
+      const rng = tcd.lo != null ? `${tcd.loEdge ? '≤ ' : ''}${wkTxt(tcd.lo)} – ${tcd.hiEdge ? '≥ ' : ''}${wkTxt(tcd.hi)} wk` : null;
+      h += `<div class="nm-est"><div class="muted small">Estimated GA · ${esc(r.short)}</div><div class="big">${est}</div>
+        ${rng ? `<div class="small">Plausible range (measurement within mean ± 1.96 SD): <b>${rng}</b></div>` : ''}</div>`;
+      if (tcd.z != null) h += `<div class="kv"><span>At clinical GA ${a.gaTxt}: expected mean</span><span>${fmtMm(tcd.expected)} mm</span></div>
+        <div class="kv"><span>Z-score / centile</span><b>${tcd.z.toFixed(2)} · ${tcd.centile < 1 ? '< 1st' : tcd.centile > 99 ? '> 99th' : Math.round(tcd.centile) + 'th'}${Math.abs(tcd.z) > 1.96 ? ' <span class="badge z-moderate">outside ±1.96 SD</span>' : ''}</b></div>`;
+      else if (tcd.expected != null) h += `<div class="kv"><span>Regression value at clinical GA</span><span>${fmtMm(tcd.expected)} mm</span></div>`;
+      tcd.flags.forEach(f => h += `<p class="warn small">⚠ ${esc(f)}</p>`);
+    }
+    if (v.status === 'uncertain') h += '<p class="muted small">GA marked uncertain – z-score is relative to the recorded GA.</p>';
+  }
+  h += `<p class="credit">${esc(r.method)} ${esc(r.note || '')}<br><a href="${r.url}" target="_blank" rel="noopener">${esc(r.cite)}</a></p>`;
+  $('#nmTcdOut').innerHTML = h;
+  drawTcdChart(v, tcd);
+
+  // B. USBD
+  const it = USBD.items;
+  let u = `<table class="tbl nm-tbl"><tr><th>Measure</th><th>Value</th><th>Points</th></tr>${['io', 'ins', 'cs'].map(k => {
+    const val = v.usbdIn[k];
+    return `<tr><td>${it[k].label}<div class="muted small">${it[k].bands}</div></td><td>${k === 'cs' && S.nm_csVis === 'absent' ? 'Not visible' : val != null ? fmtMm(val) + ' mm' : '–'}</td><td><b>${usbd.parts[k] ?? '–'}</b></td></tr>`;
+  }).join('')}</table>`;
+  if (usbd.complete) {
+    const t = usbd.ref;
+    u += `<div class="nm-est"><div class="muted small">USBD total (0–6)</div><div class="big">${usbd.total} / 6</div>
+      <div class="small">In the derivation cohort this score was seen at PMA <b>${t.mean} ± ${t.sd} wk</b> (mean ± SD; observed ${t.range}; ${t.n} scans).</div></div>`;
+    if (usbd.pmaIn != null) u += `<div class="kv"><span>Infant's PMA ${a.pmaTxt}</span><b>${usbd.pmaIn ? '<span class="badge z-normal">within observed range</span>' : '<span class="badge z-moderate">outside observed range</span>'}</b></div>`;
+    if (usbd.total === 6) u += '<p class="warn small">⚠ Score at ceiling (≈ 36 wk) – cannot discriminate older PMAs.</p>';
+    if (S.nm_csVis === 'absent' || (v.usbdIn.cs != null && v.usbdIn.cs <= 1)) u += '<p class="warn small">⚠ Cingulate sulcus not yet formed – this item cannot separate earlier PMAs.</p>';
+    if (a.pma != null && a.pma > 39.2) u += '<p class="warn small">⚠ PMA beyond the derivation range (23–39 wk).</p>';
+    if (num(S.gaW) != null && num(S.gaW) > 32) u += '<p class="warn small">⚠ Score derived in infants born ≤ 32 wk.</p>';
+  } else u += '<p class="muted small">Enter all three measurements to calculate the score.</p>';
+  u += `<details class="small ref"><summary>Method notes &amp; limitations</summary><ul class="tight">${USBD.notes.map(n => `<li>${n}</li>`).join('')}</ul></details>
+    <p class="credit"><a href="${USBD.url}" target="_blank" rel="noopener">${USBD.cite}</a></p>`;
+  $('#nmUsbdOut').innerHTML = u;
+
+  // C. visual reference
+  $('#nmVisual').innerHTML = `<div class="nm-visual">${MAT_SVG}</div>
+    <p class="muted small">Schematic of the midcoronal plane (foramina of Monro). ①–③ are the USBD measurements; ④ cingulate gyrus height is recorded separately (correlates with PMA, R = 0.72 coronal, but no reference values published).</p>
+    <button type="button" class="img-btn" id="nmSulcImg"><img src="images/tp-fig04-sulcation.jpg" alt="Sulcation preterm vs term" loading="lazy"><span class="zoom">⤢</span></button>
+    <div class="credit">${credit('tp', 4)}</div>
+    <ul class="small tight"><li>Cortex smooth in extreme prematurity; sulci begin ~26 wk.</li><li>Cingulate sulcus well seen from ~28 wk; secondary branching ~31–33 wk.</li><li>Term: tortuous, "cobblestone" cingulate region.</li></ul>
+    <div class="lref">📖 Sodhi (ed.) <i>Neonatal Ultrasound</i>, Springer 2025 – Ch 1 §1.4.1, Figs 1.26–1.34</div>`;
+  $('#nmSulcImg').onclick = () => openViewer([{ img: 'tp-fig04-sulcation', src: 'tp', fig: 4, title: 'Sulcation: preterm vs term', keys: ['A, C preterm – few shallow sulci', 'B, D term – complex branching sulci'] }], 0);
+
+  // Summary
+  const rows = [];
+  if (tcd && !tcd.unavailable) rows.push(['Transverse cerebellar diameter', `${fmtMm(v.tcd)} mm`,
+    tcd.est != null ? `GA ≈ ${wkTxt(tcd.est)} wk${tcd.lo != null ? ` (${wkTxt(tcd.lo)}–${wkTxt(tcd.hi)})` : ''}${tcd.z != null ? ` · z ${tcd.z.toFixed(2)} at clinical GA` : ''}` : 'Outside reference', r.short]);
+  if (usbd.complete) rows.push(['USBD (cortical maturation)', `${usbd.total}/6`, `PMA ${usbd.ref.mean} ± ${usbd.ref.sd} wk (observed ${usbd.ref.range})${usbd.pmaIn != null ? (usbd.pmaIn ? ' · consistent with PMA' : ' · not consistent with PMA') : ''}`, 'Stein 2023']);
+  if (v.cgC != null || v.cgS != null) rows.push(['Cingulate gyrus height', [v.cgC != null ? `${fmtMm(v.cgC)} mm cor` : '', v.cgS != null ? `${fmtMm(v.cgS)} mm sag` : ''].filter(Boolean).join(' · '), 'Trend only – no reference', '—']);
+  if (v.sulc) rows.push(['Sulcation (visual)', v.sulc, 'Qualitative', 'Sodhi 2025']);
+  $('#nmSummary').innerHTML = `<h2>Overall interpretation</h2>
+    ${rows.length ? rows.map(r => `<div class="nm-row"><div class="nm-m">${r[0]} <span class="nm-src">${r[3]}</span></div><div class="nm-r"><b>${esc(r[1])}</b> → ${esc(r[2])}</div></div>`).join('') : '<p class="muted">No measurements yet.</p>'}
+    <p class="nm-warn">Estimates are shown <b>separately</b>. They are <b>not combined</b> into a single GA, and agreement between methods has not been validated. TCD relates to GA at birth (scan early in life); USBD relates to PMA at the time of the scan.</p>`;
+}
+
+function drawTcdChart(v, tcd) {
+  const cv = $('#nmChart'); if (!cv) return;
+  const dpr = window.devicePixelRatio || 1, W = 420, H = 280;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = '100%'; cv.style.maxWidth = W + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
+  const m = { l: 36, r: 10, t: 10, b: 30 }, x0 = 22, x1 = 42, y0 = 15, y1 = 60;
+  const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r), Y = y => H - m.b - (y - y0) / (y1 - y0) * (H - m.t - m.b);
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = col('--grid'); ctx.fillStyle = col('--muted'); ctx.font = '10px system-ui'; ctx.lineWidth = 1;
+  for (let x = x0; x <= x1; x += 2) { ctx.beginPath(); ctx.moveTo(X(x), Y(y0)); ctx.lineTo(X(x), Y(y1)); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillText(x, X(x), H - m.b + 13); }
+  for (let y = y0; y <= y1; y += 5) { ctx.beginPath(); ctx.moveTo(X(x0), Y(y)); ctx.lineTo(X(x1), Y(y)); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(y, m.l - 4, Y(y) + 3); }
+  ctx.textAlign = 'center'; ctx.fillText('Gestational age (weeks)', (m.l + W - m.r) / 2, H - 3);
+  ctx.save(); ctx.translate(10, (m.t + H - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('TCD (mm)', 0, 0); ctx.restore();
+  const rk = v.ref === 'davies' || TCD_REFS[v.ref].loaded === false ? 'prasad10' : v.ref, r = TCD_REFS[rk];
+  // band mean ± 1.96 SD
+  ctx.beginPath();
+  r.ga.forEach((g, i) => ctx.lineTo(X(g), Y(r.mean[i] + 1.96 * r.sd[i])));
+  for (let i = r.ga.length - 1; i >= 0; i--) ctx.lineTo(X(r.ga[i]), Y(r.mean[i] - 1.96 * r.sd[i]));
+  ctx.closePath(); ctx.fillStyle = col('--zg'); ctx.fill();
+  ctx.beginPath(); r.ga.forEach((g, i) => ctx.lineTo(X(g), Y(r.mean[i]))); ctx.strokeStyle = col('--lgreen'); ctx.lineWidth = 2; ctx.stroke();
+  if (v.ref === 'davies') {
+    const d = TCD_REFS.davies; ctx.beginPath(); ctx.moveTo(X(23), Y(d.eq(23))); ctx.lineTo(X(32), Y(d.eq(32)));
+    ctx.strokeStyle = '#6b2fd6'; ctx.setLineDash([5, 3]); ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (v.tcd != null) {
+    ctx.strokeStyle = col('--ptR'); ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(X(x0), Y(v.tcd)); ctx.lineTo(X(x1), Y(v.tcd)); ctx.stroke(); ctx.setLineDash([]);
+    if (tcd && tcd.lo != null) { ctx.fillStyle = 'rgba(29,95,209,.15)'; ctx.fillRect(X(tcd.lo), Y(v.tcd) - 6, X(tcd.hi) - X(tcd.lo), 12); }
+    if (tcd && tcd.est != null) { ctx.beginPath(); ctx.moveTo(X(tcd.est), Y(v.tcd) - 9); ctx.lineTo(X(tcd.est) + 7, Y(v.tcd)); ctx.lineTo(X(tcd.est), Y(v.tcd) + 9); ctx.lineTo(X(tcd.est) - 7, Y(v.tcd)); ctx.closePath(); ctx.fillStyle = col('--ptR'); ctx.fill(); }
+    if (v.ctx.ga != null) { ctx.beginPath(); ctx.arc(X(Math.min(x1, Math.max(x0, v.ctx.ga))), Y(v.tcd), 5, 0, 7); ctx.fillStyle = col('--acc'); ctx.fill(); }
+  }
+  $('#nmChartCap').innerHTML = `Green: ${esc(r.short)} mean and ± 1.96 SD${v.ref === 'davies' ? '; purple dashed: Davies 1999 regression' : ''}. Blue line: measured TCD; ◆ estimated GA (blue bar = plausible range)${v.ctx.ga != null ? '; ● clinical GA' : ''}.`;
+}
+
+function maturityRows() {
+  const { v, tcd, usbd } = nmCompute(), r = TCD_REFS[v.ref], out = [];
+  if (v.tcd != null && tcd && !tcd.unavailable) out.push(['Transverse cerebellar diameter',
+    `${fmtMm(v.tcd)} mm (mean of ${v.tcds.length})${v.hR != null && v.hL != null ? `; hemispheres R ${fmtMm(v.hR)} / L ${fmtMm(v.hL)} mm` : ''}. Estimated GA ${tcd.est != null ? wkTxt(tcd.est) + ' wk' : 'outside reference'}${tcd.lo != null ? ` (range ${wkTxt(tcd.lo)}–${wkTxt(tcd.hi)})` : ''}${tcd.z != null ? `; z ${tcd.z.toFixed(2)} at clinical GA` : ''} [${r.short}]${tcd.flags.length ? ' – ' + tcd.flags.join(' ') : ''}`]);
+  if (usbd.complete) out.push(['USBD (Stein 2023)', `${usbd.total}/6 (IO ${fmtMm(v.usbdIn.io)}, insula ${fmtMm(v.usbdIn.ins)}, cingulate sulcus ${S.nm_csVis === 'absent' ? 'not visible' : fmtMm(v.usbdIn.cs)} mm) – reference PMA ${usbd.ref.mean} ± ${usbd.ref.sd} wk${usbd.pmaIn != null ? (usbd.pmaIn ? '; consistent with PMA' : '; not consistent with PMA') : ''}`]);
+  if (v.cgC != null || v.cgS != null) out.push(['Cingulate gyrus height', `${v.cgC != null ? fmtMm(v.cgC) + ' mm coronal ' : ''}${v.cgS != null ? fmtMm(v.cgS) + ' mm sagittal' : ''} (no reference values)`]);
+  if (v.sulc) out.push(['Sulcation', v.sulc]);
+  return out;
+}
+function maturityReportHTML() {
+  const rows = maturityRows(); if (!rows.length) return '';
+  return `<h4>Brain maturation &amp; GA assessment</h4><table class="rt">${rows.map(([k, x]) => `<tr><th>${k}</th><td>${esc(x)}</td></tr>`).join('')}</table>
+    <p class="small">Methods reported separately; no combined GA is derived.</p>`;
+}
+function maturityText() {
+  const rows = maturityRows(); if (!rows.length) return '';
+  return rows.map(([k, x]) => `  ${k}: ${x}`).join('\n') + '\n  (Methods reported separately; no combined GA derived.)';
+}
+function maturitySums() {
+  const { v, tcd, usbd } = nmCompute();
+  const set = (k, t, c = '') => { const el = $(`[data-sum="${k}"]`); if (el) { el.textContent = t; el.className = 'sum ' + c; } };
+  set('nm_tcd', tcd && tcd.est != null ? `≈ ${wkTxt(tcd.est)} wk` : v.tcd != null ? fmtMm(v.tcd) + ' mm' : '', tcd && tcd.flags && tcd.flags.length ? 'warn' : 'ok');
+  set('nm_usbd', usbd.complete ? `${usbd.total}/6` : '', usbd.pmaIn === false ? 'warn' : 'ok');
+  set('nm_add', v.cgC != null || v.cgS != null || v.sulc ? 'Recorded' : '', '');
+}
+
 /* ---------------- Update cycle ---------------- */
 let saveTimer;
 function update() {
   S = readForm();
   I = interpret(S);
-  renderAges(); renderVentLive(); renderSums();
+  renderAges(); renderVentLive(); renderSums(); maturitySums();
   if (!S.impEdited) { S.impression = buildImpression(S, I); $('#impression').value = S.impression; }
   if (!S.recEdited) { S.recommendation = buildRecommendation(S, I); $('#recommendation').value = S.recommendation; }
   const active = $('.bottom-nav .active')?.dataset.tab;
   if (active === 'interp') { renderInterp(); renderSeries(); }
   if (active === 'report') renderReport();
+  if (active === 'mature') renderMaturity();
   clearTimeout(saveTimer); saveTimer = setTimeout(() => store(LS_CASE, S), 300);
 }
 
@@ -774,6 +935,7 @@ function showTab(t) {
   $$('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + t);
   if (t === 'interp') { renderInterp(); renderSeries(); }
   if (t === 'report') renderReport();
+  if (t === 'mature') renderMaturity();
   window.scrollTo({ top: 0 });
   document.body.dataset.tab = t;
   try { history.replaceState(null, '', '#' + t); } catch {}
@@ -815,6 +977,9 @@ function init() {
 
   $('#form').addEventListener('input', update);
   $('#form').addEventListener('change', update);
+  $('#nmForm').addEventListener('input', update);
+  $('#nmForm').addEventListener('change', update);
+  $('#nmRef').innerHTML = Object.entries(TCD_REFS).map(([k, r]) => `<option value="${k}" ${r.loaded === false ? 'disabled' : ''}>${r.name}</option>`).join('');
   $$('.bottom-nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('#btnNormal').onclick = setNormal;
   $$('[data-goto]').forEach(b => b.onclick = () => showTab(b.dataset.goto));
@@ -859,7 +1024,7 @@ function init() {
 
   update();
   const h = location.hash.slice(1);
-  showTab(['guide', 'findings', 'interp', 'report'].includes(h) ? h : 'findings');
+  showTab(['guide', 'findings', 'interp', 'report', 'mature'].includes(h) ? h : 'findings');
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -283,3 +283,27 @@ input[type=date]{display:block;width:100%}
 #toast.show{opacity:1;visibility:visible}
 .lstrip{align-items:flex-start}
 .lref{font-size:.78rem;color:var(--muted);border-left:3px solid var(--line);padding:.2rem .6rem;margin:.4rem 0}
+
+/* NeoMaturity */
+.bottom-nav{grid-template-columns:repeat(5,1fr)}
+.bottom-nav button{font-size:.68rem}
+.nm-hero h2{font-size:1.25rem;margin:0;background:linear-gradient(90deg,#3b1a78,#20b9c4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nm-ctx{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.85rem;background:var(--bg);border-radius:10px;padding:.5rem .7rem;margin:.6rem 0}
+.nm-est{background:linear-gradient(135deg,rgba(32,201,208,.12),rgba(107,47,214,.10));border-radius:12px;padding:.7rem .8rem;margin:.6rem 0}
+.nm-est .big{font-size:1.6rem;font-weight:800;color:#3b1a78;line-height:1.2}
+@media (prefers-color-scheme:dark){.nm-est .big{color:#9ae8ec}}
+.nm-tbl td,.nm-tbl th{font-size:.83rem}
+.nm-chart{margin:.6rem 0 0}
+.nm-warn{background:var(--modbg);border-radius:10px;padding:.6rem .75rem;font-size:.86rem;margin:.6rem 0 0}
+.nm-visual{background:#05090b;border-radius:10px;padding:.3rem;margin:.4rem 0}
+.matsvg{width:100%;height:auto}
+.matsvg .sec{fill:#20262a;stroke:#3b454a}.matsvg .ihf{stroke:#cfd8dc;stroke-width:1.5}
+.matsvg .gyr{fill:#3c464b;stroke:#cfd8dc;stroke-width:1}.matsvg .sul{stroke:#fff;stroke-width:2}
+.matsvg .cc{fill:none;stroke:#e9eef0;stroke-width:3}.matsvg .csf{fill:#000}
+.matsvg .ins{fill:none;stroke:#cfd8dc;stroke-width:3}.matsvg .op{fill:none;stroke:#cfd8dc;stroke-width:2}
+.matsvg .m1,.matsvg .m2,.matsvg .m3{stroke:#ffcc00;stroke-width:2}.matsvg .m4{stroke:#20e0e6;stroke-width:2;stroke-dasharray:3 2}
+.matsvg .ml{fill:#ffcc00;font:700 13px system-ui}.matsvg .ml.g,.matsvg .lg.g{fill:#20e0e6}
+.matsvg .lg{fill:#e9f6f9;font:9.5px system-ui}
+.nm-row{padding:.55rem 0;border-bottom:1px solid var(--line)}
+.nm-m{font-weight:700;font-size:.92rem}.nm-src{font-weight:600;font-size:.7rem;color:var(--muted);background:var(--bg);border-radius:6px;padding:.05rem .4rem;margin-left:.3rem}
+.nm-r{font-size:.88rem;margin-top:.15rem}

@@ -1,6 +1,6 @@
 /* NeoCranial USG service worker – offline cache. Bump VERSION when files change. */
-const VERSION = 'neocranial-v1.4.0';
-const ASSETS = ['./', './index.html', './css/styles.css', './js/data.js', './js/app.js',
+const VERSION = 'neocranial-v1.5.0';
+const ASSETS = ['./', './index.html', './css/styles.css', './js/data.js', './js/maturity.js', './js/app.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
   './images/fi-fig01-csp.jpg',
   './images/fi-fig02-cavum-veli-interpositi.jpg',
