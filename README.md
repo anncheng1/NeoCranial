@@ -59,6 +59,9 @@ No server, no analytics. Case data, settings and PHVD series are stored only in 
 ## Disclaimer
 Clinical decision-support tool. Ventricular reference curves are digitised from published charts and are approximate; verify against source references and local protocol. Final interpretation rests with the reporting clinician.
 
+## Images
+The reference images come from open-access (CC BY) papers, including the eurUS.brain series (Pediatric Research 2020), and from unit teaching material used with permission. See [IMAGE_CREDITS.md](IMAGE_CREDITS.md) for sources, licences and the changes made.
+
 ## Key references
 - James AC. Practical guide to neonatal cranial ultrasound: basics. Paediatr Child Health 2018.
 - El-Dib M et al. Management of post-hemorrhagic ventricular dilatation in the infant born preterm. J Pediatr 2020;226:16-27.

@@ -489,7 +489,7 @@ function renderReport() {
   <h4>9. Recommendation</h4><div class="box">${esc(rec).replace(/\n/g, '<br>')}</div>
   <div class="sign">
     <div><div class="line"></div>${esc(o.reporter || settings.rep || 'Reported by')}<br><span class="small">${esc(o.designation || settings.des || '')}</span></div>
-    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v2.1</div>
+    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v2.2</div>
   </div>`;
 }
 
@@ -1161,7 +1161,7 @@ function wzStepHTML() {
     <div class="sub">Image quality</div>
     <div class="opts row">${['Optimal', 'Adequate', 'Limited'].map(q => `<button type="button" class="opt ${o.quality === q ? 'on' : ''}" data-set="quality" data-val="${q}"><span class="opt-r"></span><b>${q}</b></button>`).join('')}</div>
     ${o.quality === 'Limited' ? inp('qualityNote', 'Why is it limited? (e.g. small fontanelle, unsettled baby)') : ''}
-    <details class="tipbox"><summary>Why these settings matter</summary><ul class="tight small"><li>Higher frequency = sharper image but less depth.</li><li>Over-gain hides haemorrhage and creates false bright white matter.</li><li>Pressing hard on the fontanelle changes Doppler values.</li></ul><button type="button" class="btn ghost sm" data-learn="1">Open Learn step: depth & gain</button></details>`;
+    <details class="tipbox"><summary>Why these settings matter</summary><ul class="tight small"><li>Higher frequency = sharper image but less depth.</li><li>Over-gain hides haemorrhage and creates false bright white matter.</li><li>Pressing hard on the fontanelle changes Doppler values.</li></ul><button type="button" class="img-btn" data-img="eu-dud-f3-settings" data-src="du" data-fig="3" data-t="Effect of gain, dynamic range, TGC and sector width"><img src="images/eu-dud-f3-settings.jpg" alt="Scanner settings examples" loading="lazy"><span class="zoom">⤢</span></button><div class="credit">${credit('du', 3)}</div><button type="button" class="btn ghost sm" data-learn="1">Open Learn step: depth & gain</button></details>`;
   case 2: {
     const v = VIEW_STEPS[wzView];
     const list = VIEW_STEPS.map((x, i) => `<button type="button" class="vchip ${o['gv_' + x.id] === 'yes' ? 'ok' : o['gv_' + x.id] === 'no' ? 'no' : ''} ${i === wzView ? 'cur' : ''}" data-vi="${i}">${x.id}</button>`).join('');
@@ -1169,6 +1169,7 @@ function wzStepHTML() {
       <details class="card xview"><summary><b>${x.title}</b> <span class="sum ${o['gv_' + x.id] === 'yes' ? 'ok' : ''}">${o['gv_' + x.id] === 'yes' ? 'Done' : o['gv_' + x.id] === 'no' ? 'Skipped' : 'Optional'}</span></summary>
         <p class="small">${x.why}</p>
         ${x.img ? `<button type="button" class="img-btn" data-img="${x.img}" data-src="${x.src}" data-fig="${x.fig}" data-t="${esc(x.title)}"><img src="images/${x.img}.jpg" alt="" loading="lazy"><span class="zoom">⤢</span></button>${credit(x.src, x.fig) ? `<div class="credit">${credit(x.src, x.fig)}</div>` : ''}` : ''}
+        ${x.extra ? `<button type="button" class="link-btn" data-img="${x.extra}" data-src="${x.extraSrc}" data-fig="${x.extraFig}" data-t="${esc(x.title)} – anatomy">+ labelled anatomy</button>` : ''}
         <p class="small"><b>Probe:</b> ${x.probe}</p>
         <div class="sub">Identify</div><ul class="tight small">${x.find.map(t => `<li>${t}</li>`).join('')}</ul>
         <div class="sub">Check</div><ul class="tight small">${x.check.map(t => `<li>${t}</li>`).join('')}</ul>
@@ -1184,6 +1185,7 @@ function wzStepHTML() {
       <div class="credit">Reference image – ${v.panel}${credit(v.src, v.fig) ? ' · ' + credit(v.src, v.fig) : ''}</div>
       ${v.extra ? `<button type="button" class="link-btn" data-img="${v.extra}" data-src="${v.extraSrc || (v.extra.startsWith('tp') ? 'tp' : 'lc')}" data-fig="${v.extraFig ?? (v.extra.startsWith('tp') ? 2 : 0)}" data-t="${esc(v.title)} – additional reference">+ another reference image</button>` : ''}
       <div class="probe-row">${probeSVG(v.plane, v.tilt, v.id)}<div><div class="sub">Probe orientation</div><p class="small">${v.probe}</p></div></div>
+      ${v.labels ? `<details class="lbl-key"><summary>Number key for this image</summary><ul class="tight small">${v.labels.map(t => `<li>${t}</li>`).join('')}</ul></details>` : ''}
       <div class="sub">Identify these structures</div>
       <ul class="tight small">${v.find.map(t => `<li>${t}</li>`).join('')}</ul>
       <div class="sub">Quick checklist</div>

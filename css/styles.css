@@ -392,3 +392,4 @@ ul.narr{margin:2px 0 6px;padding-left:16px;font-size:10pt}
 .abn-sec.sen h4{color:var(--hi)}
 .abn .lstrip img{max-height:240px;object-fit:contain;background:#000}
 .abn .lstrip figure{flex-basis:80%}
+.lbl-key{background:var(--bg);border-radius:10px;padding:.4rem .6rem;margin:.4rem 0}.lbl-key summary{font-size:.85rem}

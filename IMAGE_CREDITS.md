@@ -56,3 +56,15 @@ Fichera G, Stramare R, Bisogno G, et al. *Neonatal cerebral ultrasound: anatomic
 Used with the author's permission. Only the unit's own scans are included: `images/cg-*.jpg` (VI/AHW measurement, C6 parieto-occipital, S3 insula, choroid plexus cysts, connatal cysts). Figures in that guideline taken from textbooks or other publishers (e.g. Springer *Neonatal Cranial Ultrasound* figures, Pearson anatomy illustration) are **not** included.
 
 Other references cited in the app (James 2018, El-Dib 2020, Beek & Groenendaal, Epelman 2006) are not open access; no images from them are included.
+
+## eurUS.brain series – Pediatric Research 2020;87(Suppl 1)
+All figures are licensed **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/).
+**Changes made:** the images were resized and converted to JPEG. Single coronal and sagittal sections (`eu-cor-*`, `eu-sag-*`) were cropped from Dudink Fig 4 and Fig 5. The number keys come from the original figure legends. No other changes were made.
+
+| Files | Source |
+|---|---|
+| eu-dud-f1…f6, eu-cor-c2…c6, eu-cor-planes, eu-sag-s1…s3 | Dudink J, Jeanne Steggerda S, Horsch S; eurUS.brain group. State-of-the-art neonatal cerebral ultrasound: technique and reporting. Pediatr Res 2020;87:3–12. https://doi.org/10.1038/s41390-020-0776-y |
+| eu-par-f3, f4, f6, f7, f8 | Parodi A, Govaert P, Horsch S, Bravo MC, Ramenghi LA; eurUS.brain group. Cranial ultrasound findings in preterm germinal matrix haemorrhage, sequelae and outcome. Pediatr Res 2020;87:13–24. https://doi.org/10.1038/s41390-020-0780-2 |
+| eu-fum-f1, f2, f3, f4, f8 | Fumagalli M, Parodi A, Ramenghi L, Limperopoulos C, Steggerda S; eurUS.brain group. Ultrasound of acquired posterior fossa abnormalities in the newborn. Pediatr Res 2020;87:25–36. https://doi.org/10.1038/s41390-020-0778-9 |
+| eu-agu-f2, f3, f4, f5, f7 | Agut T, Alarcon A, Cabañas F, Bartocci M, Martinez-Biarge M, Horsch S; eurUS.brain group. Preterm white matter injury: ultrasound diagnosis and classification. Pediatr Res 2020;87:37–49. https://doi.org/10.1038/s41390-020-0781-1 |
+| eu-ann-f1 | Annink KV, de Vries LS, Groenendaal F, et al. The development and validation of a cerebral ultrasound scoring system for infants with hypoxic-ischaemic encephalopathy. Pediatr Res 2020;87:59–66. https://doi.org/10.1038/s41390-020-0782-0 |
