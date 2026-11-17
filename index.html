@@ -64,7 +64,13 @@
 
 <!-- ================= 2. FINDINGS ================= -->
 <section id="tab-findings" class="tab-panel no-print">
+<div class="seg full two" id="modeSeg">
+  <button data-mode="beginner">Beginner – guided</button>
+  <button data-mode="expert">Experienced – full form</button>
+</div>
+<div id="wizard"></div>
 <form id="form" autocomplete="off" onsubmit="return false">
+  <div id="hiddenKeys" hidden></div>
   <div class="quick">
     <button type="button" class="btn ok" id="btnNormal">✓ Normal scan</button>
     <button type="button" class="btn ghost" id="allViews">All views done</button>
@@ -447,10 +453,11 @@
 <div id="toast" role="status"></div>
 
 <footer class="foot no-print">
-  NeoCranial USG v1.5 · Decision-support tool – clinical correlation and local protocols apply. Data are stored only in this browser.
+  NeoCranial USG v2.0 · Decision-support tool – clinical correlation and local protocols apply. Data are stored only in this browser.
 </footer>
 
 <script src="js/data.js"></script>
+<script src="js/guided.js"></script>
 <script src="js/maturity.js"></script>
 <script src="js/app.js"></script>
 </body>

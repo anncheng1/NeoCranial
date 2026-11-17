@@ -26,6 +26,9 @@ function buildForm() {
     `<label class="ck"><input type="checkbox" data-g="views" value="${v}"> ${v}</label>`).join('');
   $('#sagList').innerHTML = SAGITTAL_VIEWS.map(([v, t]) =>
     `<label class="ck"><input type="checkbox" data-g="views" value="${v}"> ${t}</label>`).join('');
+  const hk = ['gs_vent', 'gs_gmhR', 'gs_gmhL', 'gs_wm', 'gs_cc', 'gs_bg', 'gs_pf', 'gs_ext', 'wz_meas', 'wz_other', 'wz_done',
+    ...VIEW_STEPS.map(v => 'gv_' + v.id), ...EXTRA_VIEWS.map(v => 'gv_' + v.id), ...TECH_CHECK.map(t => t[0])];
+  $('#hiddenKeys').innerHTML = hk.map(k => `<input type="hidden" data-k="${k}">`).join('');
   $('#anatList').innerHTML = ANATOMY.map(([k, t, opts]) =>
     `<label>${t}<select data-k="an_${k}">${opts.map((o, i) => `<option value="${i}">${o}</option>`).join('')}</select></label>`).join('');
 }
@@ -158,7 +161,9 @@ function interpret(o) {
   }
 
   // Anatomy abnormal flags (index > 0 = deviation from normal)
-  r.anatAbn = ANATOMY.filter(([k]) => +o['an_' + k] > 0)
+  r.notAssessed = ANATOMY.filter(([k, , opts]) => NV_LABELS.includes(opts[+o['an_' + k] || 0]))
+    .map(([k, t, opts]) => ({ k, t, s: opts[+o['an_' + k]] }));
+  r.anatAbn = ANATOMY.filter(([k, , opts]) => +o['an_' + k] > 0 && !NV_LABELS.includes(opts[+o['an_' + k]]))
     .map(([k, t, opts]) => `${t}: ${opts[+o['an_' + k]]}`);
   // Ignore anatomy entries fully explained by structured sections / normal variants
   r.anatAbn = r.anatAbn.filter(t => !/normal variant/i.test(t));
@@ -188,10 +193,11 @@ function ivhDesc(o, r) {
 function buildImpression(o, r) {
   const L = [];
   const pma = r.a.pmaTxt !== '–' ? ` at ${r.a.pmaTxt} PMA` : '';
+  const limLine = r.notAssessed && r.notAssessed.length ? `Limited assessment: ${r.notAssessed.map(x => `${x.t.toLowerCase()} (${x.s.toLowerCase()})`).join('; ')}.` : '';
   if (!r.abnormal) {
-    L.push(`Normal cranial ultrasound${pma}.`);
-    L.push('No germinal matrix / intraventricular haemorrhage, no ventricular dilatation, no periventricular white matter injury and no cerebellar haemorrhage identified.');
-    if (!(o.win || []).includes('MF')) L.push('(Mastoid view not performed – small cerebellar haemorrhage cannot be excluded.)');
+    L.push(`No significant abnormality detected in the visualised structures${pma}.`);
+    if (limLine) L.push(limLine);
+    if (!(o.win || []).includes('MF')) L.push('Mastoid views not obtained – small cerebellar haemorrhage cannot be excluded.');
     return L.join('\n');
   }
   L.push(`Abnormal cranial ultrasound${pma}:`);
@@ -225,6 +231,7 @@ function buildImpression(o, r) {
   if (r.extra.length) L.push(`• ${r.extra.join('; ')}.`);
   if (r.riTxt && !/^Normal/.test(r.riTxt)) L.push(`• Doppler: ${r.riTxt}.`);
   r.anatAbn.forEach(t => L.push(`• ${t}.`));
+  if (limLine) L.push(limLine);
   if (o.interval && o.comparison === 'Compared with previous') L.push(`Compared with previous scan${o.prevDate ? ' (' + fmtDate(o.prevDate) + ')' : ''}: ${o.interval.toLowerCase()}.`);
   return L.join('\n');
 }
@@ -235,11 +242,11 @@ function buildRecommendation(o, r) {
   const add = t => { if (!R.includes(t)) R.push(t); };
 
   if (r.ventZone === 'high') {
-    add('PHVD in high-risk zone: urgent neurosurgical referral for consideration of temporising CSF drainage (ventricular reservoir / ventriculosubgaleal shunt).');
-    add('Repeat CUS at least twice weekly; daily head circumference; monitor for signs of raised ICP.');
+    add('Ventricular measurements in the high-risk zone – senior / neonatologist review today. Any management decision (including specialist referral) is made by the senior team per unit protocol.');
+    add('Plot serial measurements on the PHVD chart; daily head circumference; repeat CUS as directed by senior.');
   } else if (r.ventZone === 'moderate') {
-    add('Ventricular dilatation in moderate-risk zone: neurosurgical consultation; consider lumbar puncture(s) (≈10 mL/kg CSF) per unit protocol, with CUS before and after.');
-    add('Repeat CUS at least twice weekly and plot on PHVD chart; daily head circumference.');
+    add('Ventricular measurements above the 97th centile (moderate-risk zone) – discuss with senior / neonatologist.');
+    add('Plot serial measurements on the PHVD chart; daily head circumference; repeat CUS as directed by senior.');
   }
   if (r.papile >= 3 && !r.ventDilated) add('Repeat CUS at least twice weekly until ventricular size stable for 2 weeks, then every 1–2 weeks until 34 wk PMA (monitor for PHVD).');
   else if (r.papile >= 1 && r.papile <= 2 && !r.ventDilated) add('Repeat CUS in 1 week to assess progression and ventricular size.');
@@ -255,6 +262,9 @@ function buildRecommendation(o, r) {
   if (r.extra.length) add('Clinical correlation (coagulation, platelet count, birth history); consider MRI if collection significant or symptomatic.');
   if (r.v3Abn || r.cmAbn) add('Correlate with clinical findings; consider MRI if persistent.');
   if (r.ventMissingPMA) add('Enter GA at birth and dates to enable ventricular risk-zone classification.');
+  if (r.notAssessed && r.notAssessed.length) add('Limited study – consider repeat scan or senior scan to complete assessment.');
+  const sf = seniorFlags(o, r);
+  if (sf.length) R.unshift('Senior review: ' + sf.join('; ') + '.');
 
   if (!r.abnormal) {
     if (r.a.screenEligible) add('Continue routine preterm CUS screening per unit protocol (e.g. day 3, 7, 14, 28, then at 36 wk PMA / before discharge, or term-equivalent age).');
@@ -316,8 +326,8 @@ function renderInterp() {
   // Ventricles
   const vz = r.ventZone === 'high' ? 'lv-high' : r.ventZone === 'moderate' ? 'lv-mod' : 'lv-ok';
   let phvdTxt = '';
-  if (r.ventZone === 'high') phvdTxt = '<p class="z-high-t"><b>High-risk zone.</b> Neurosurgical intervention (temporising CSF drainage) should be considered.</p>';
-  else if (r.ventZone === 'moderate') phvdTxt = '<p class="z-mod-t"><b>Moderate-risk zone.</b> Neurosurgical consultation; consider LP(s) ≈10 mL/kg; CUS ≥ twice weekly.</p>';
+  if (r.ventZone === 'high') phvdTxt = '<p class="z-high-t"><b>High-risk zone.</b> Senior / neonatologist review today. Management is a senior decision – the app does not recommend treatment from measurements alone.</p>';
+  else if (r.ventZone === 'moderate') phvdTxt = '<p class="z-mod-t"><b>Above 97th centile.</b> Discuss with senior; plot serially.</p>';
   else if (r.ventZone === 'normal' && r.anyIVH) phvdTxt = '<p>Within reference. If IVH present: CUS ≥ twice weekly until stable for 2 weeks, then 1–2 weekly until 34 wk PMA.</p>';
   out.push(card('Ventricular size / PHVD risk zone', renderVentTable(r) + phvdTxt +
     (r.v3 != null ? `<div class="kv"><span>3rd ventricle</span><b>${fmt1(r.v3)} mm ${r.v3Abn ? '<span class="badge z-moderate">≥ 3 mm</span>' : '<span class="badge z-normal">normal</span>'}</b></div>` : ''), vz));
@@ -464,7 +474,8 @@ function renderReport() {
   </table>
   <h4>4. Standard views</h4>
   <table class="rt">${tr('Coronal', v.cor)}${tr('Sagittal', v.sag)}</table>
-  <h4>5. Brain anatomy</h4>
+  ${(() => { const n = buildNarrative(o, r); return `<h4>Findings</h4><p class="small"><i>${esc(n.tech)}</i></p><ul class="narr">${n.findings.map(f => `<li>${esc(f)}</li>`).join('')}</ul>`; })()}
+  <h4>5. Brain anatomy checklist</h4>
   <table class="rt">${anatomyRows(o).map(([t, val, abn]) => tr(t, val, abn)).join('')}${o.anatNotes ? tr('Notes', o.anatNotes) : ''}</table>
   <h4>6. Measurements (mm)</h4>
   <table class="rt meas"><tr><th></th><th>Right</th><th>Left</th><th>p97 for PMA</th></tr>
@@ -473,11 +484,12 @@ function renderReport() {
   <h4>7. Abnormalities</h4>
   <table class="rt">${abnormalityRows(o, r).map(([k, val, abn]) => tr(k, val, abn)).join('')}${o.notes ? tr('Additional', o.notes) : ''}</table>
   ${maturityReportHTML()}
+  ${(() => { const f = seniorFlags(o, r); return f.length ? `<div class="box abn-b"><b>Senior review recommended:</b> ${esc(f.join('; '))}.</div>` : ''; })()}
   <h4>8. Impression</h4><div class="box ${r.abnormal ? 'abn-b' : ''}">${esc(imp).replace(/\n/g, '<br>')}</div>
   <h4>9. Recommendation</h4><div class="box">${esc(rec).replace(/\n/g, '<br>')}</div>
   <div class="sign">
     <div><div class="line"></div>${esc(o.reporter || settings.rep || 'Reported by')}<br><span class="small">${esc(o.designation || settings.des || '')}</span></div>
-    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v1.5</div>
+    <div class="small">Report generated ${new Date().toLocaleString('en-GB')}<br>NeoCranial USG v2.0</div>
   </div>`;
 }
 
@@ -491,7 +503,9 @@ function reportText() {
   L.push(`INDICATION: ${indText(o)}`);
   L.push(`TECHNIQUE: ${windowsText(o)}. Quality: ${o.quality}${o.qualityNote ? ' (' + o.qualityNote + ')' : ''}.`);
   L.push(`VIEWS: Coronal ${v.cor}. Sagittal: ${v.sag}.`, '');
-  L.push('ANATOMY:');
+  const nar = buildNarrative(o, r);
+  L.push('TECHNIQUE: ' + nar.tech, '', 'FINDINGS:'); nar.findings.forEach(f => L.push('  ' + f)); L.push('');
+  L.push('ANATOMY CHECKLIST:');
   anatomyRows(o).forEach(([t, val]) => L.push(`  ${t}: ${val}`));
   L.push('', 'MEASUREMENTS (mm)   R / L');
   ['VI', 'AHW', 'TOD'].forEach(k => {
@@ -625,12 +639,31 @@ function renderViews() {
   $$('[data-view]').forEach(b => b.onclick = () => openViewer(VIEWS.map(v => ({ ...v, keys: v.panels.map(p => `${p[0] ? p[0] + ': ' : ''}${p[1]}`) })), +b.dataset.view));
 }
 
-let atlasCat = 'All';
+let atlasCat = 'Recognition';
 function renderAtlas() {
-  const cats = ['All', ...new Set(ATLAS.map(a => a.cat))];
-  $('#atlasCats').innerHTML = cats.map(c => `<button class="chipb ${c === atlasCat ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('');
+  const cats = ['Recognition', 'All images', ...new Set(ATLAS.map(a => a.cat))];
+  $('#atlasCats').innerHTML = cats.map(c => `<button class="chipb ${c === atlasCat ? 'on' : ''}" data-cat="${c}">${c === 'Recognition' ? '🔎 Abnormality recognition' : c}</button>`).join('');
   $$('#atlasCats [data-cat]').forEach(b => b.onclick = () => { atlasCat = b.dataset.cat; renderAtlas(); });
-  const list = ATLAS.filter(a => atlasCat === 'All' || a.cat === atlasCat);
+  if (atlasCat === 'Recognition') {
+    $('#atlasList').className = 'abn-list';
+    $('#atlasList').innerHTML = ABN_ATLAS.map(e => `
+      <details class="card abn">
+        <summary><img src="${imgPath(e.imgs[0][0])}" alt="" loading="lazy"><div><b>${e.title}</b><span class="muted small">${e.looks[0]}</span></div></summary>
+        <div class="lstrip">${e.imgs.map(([img, src, fig, cap], k) => `<figure><button class="img-btn" data-ab="${e.id}" data-k="${k}"><img src="${imgPath(img)}" alt="${esc(cap)}" loading="lazy"><span class="zoom">⤢</span></button><figcaption>${cap}${SOURCES[src].url ? `<div class="credit">${credit(src, fig)}</div>` : ''}</figcaption></figure>`).join('')}</div>
+        <div class="abn-sec"><h4>📍 Where to look</h4><p>${e.where}</p></div>
+        <div class="abn-sec"><h4>👁 What it looks like</h4><ul>${e.looks.map(x => `<li>${x}</li>`).join('')}</ul></div>
+        <div class="abn-sec"><h4>📏 How to grade / describe</h4><p>${e.grade}</p></div>
+        <div class="abn-sec pit"><h4>⚠ Common pitfalls</h4><ul>${e.pitfalls.map(x => `<li>${x}</li>`).join('')}</ul></div>
+        <div class="abn-sec sen"><h4>⚑ When to seek senior review</h4><p>${e.senior}</p></div>
+      </details>`).join('');
+    $$('#atlasList [data-ab]').forEach(b => b.onclick = e => {
+      e.preventDefault(); const en = ABN_ATLAS.find(x => x.id === b.dataset.ab);
+      openViewer(en.imgs.map(([img, src, fig, cap]) => ({ img, src, fig, title: `${en.title} – ${cap}`, keys: en.looks })), +b.dataset.k);
+    });
+    return;
+  }
+  $('#atlasList').className = 'atlas';
+  const list = ATLAS.filter(a => atlasCat === 'All images' || a.cat === atlasCat);
   $('#atlasList').innerHTML = list.map((a, i) => `
     <button class="acard" data-atlas="${i}">
       <img src="${imgPath(a.img)}" alt="" loading="lazy">
@@ -915,6 +948,392 @@ function maturitySums() {
   set('nm_add', v.cgC != null || v.cgS != null || v.sulc ? 'Recorded' : '', '');
 }
 
+/* =================== Narrative findings & senior review =================== */
+const anLabel = (o, k) => { const a = ANATOMY.find(x => x[0] === k); return a[2][+o['an_' + k] || 0]; };
+const isNV = (o, k) => NV_LABELS.includes(anLabel(o, k));
+const nvTxt = (o, k) => anLabel(o, k).toLowerCase();
+
+function buildNarrative(o, r) {
+  const win = o.win || [], views = o.views || [];
+  const allAF = VIEW_STEPS.every(v => views.includes(v.id));
+  const missing = VIEW_STEPS.filter(v => !views.includes(v.id)).map(v => v.id);
+  let tech = 'Examination performed through the anterior fontanelle using coronal and sagittal planes';
+  const sup = [win.includes('MF') ? 'mastoid fontanelle' : '', win.includes('PF') ? 'posterior fontanelle' : ''].filter(Boolean);
+  if (sup.length) tech += `, with supplementary ${sup.join(' and ')} views`;
+  tech += '.';
+  if (views.length && !allAF) tech += ` Standard views not obtained: ${missing.join(', ')}.`;
+  if (o.quality === 'Limited') tech += ` Image quality limited${o.qualityNote ? ' (' + o.qualityNote + ')' : ''}.`;
+
+  const F = [];
+  // ventricles
+  if (isNV(o, 'ventricles')) F.push(`Lateral ventricles: ${nvTxt(o, 'ventricles')}.`);
+  else if (r.ventDilated) F.push(`Lateral ventricles are dilated (${r.ventZone === 'high' ? 'high-risk zone' : 'above the 97th centile'} for PMA – see measurements).`);
+  else {
+    const v = +o.an_ventricles || 0;
+    F.push(v === 2 ? 'Mild asymmetry of the lateral ventricles, within normal variation.' : v === 3 ? 'Slit-like lateral ventricles.' : v === 1 ? 'Lateral ventricles appear enlarged.' : v === 4 ? 'Lateral ventricles have a ballooned configuration.' : v === 5 ? 'Lateral ventricles have an irregular outline.' : 'Lateral ventricles are normal in size and configuration.');
+    if (r.anyVentMeasured && !r.ventDilated) F[F.length - 1] = F[F.length - 1].replace(/\.$/, '; measurements within the reference range for PMA.');
+  }
+  // GMH-IVH
+  if (isNV(o, 'ctg')) F.push(`Germinal matrix / caudothalamic regions: ${nvTxt(o, 'ctg')}.`);
+  else if (r.papile === 0) F.push('No germinal matrix or intraventricular haemorrhage identified.');
+  else {
+    const sd = s => { const p = s === 'R' ? r.papR : r.papL; return p ? `${s === 'R' ? 'right' : 'left'} Papile grade ${['', 'I', 'II', 'III', 'IV'][p]}` : null; };
+    F.push(`Germinal matrix–intraventricular haemorrhage: ${[sd('R'), sd('L')].filter(Boolean).join('; ')}.`);
+  }
+  r.phi.forEach(p => F.push(`Periventricular haemorrhagic infarction on the ${p.side.toLowerCase()}${p.loc.length ? ' (' + p.loc.join('/') + ')' : ''}.`));
+  // white matter
+  if (isNV(o, 'pvwm')) F.push(`Periventricular white matter: ${nvTxt(o, 'pvwm')}.`);
+  else if (r.devries >= 1) F.push(`${DEVRIES[r.devries]}.`);
+  else if (r.devries === 0.5) F.push(`Increased periventricular echogenicity${o.pveDays ? ' (present ' + o.pveDays + ' days)' : ''} – requires follow-up.`);
+  else if (o.gs_wm === 'blush') F.push('Mild symmetric periventricular echogenicity, less than choroid plexus – in keeping with a physiological appearance.');
+  else F.push('Periventricular white matter appears unremarkable.');
+  // corpus callosum
+  const acc = (o.cong || []).some(c => /corpus callosum/i.test(c));
+  if (isNV(o, 'csp')) F.push(`Corpus callosum / cavum septum pellucidum: ${nvTxt(o, 'csp')}.`);
+  else if (acc) F.push('Corpus callosum not clearly identified – possible callosal anomaly.');
+  else if (+o.an_csp === 2) F.push('Cavum septum pellucidum absent; corpus callosum to be confirmed.');
+  else F.push('Corpus callosum appears intact.');
+  // basal ganglia
+  const echo = o.echo || [];
+  if (isNV(o, 'deepgrey')) F.push(`Basal ganglia and thalami: ${nvTxt(o, 'deepgrey')}.`);
+  else if (echo.some(e => /thalamic/.test(e))) F.push('Increased echogenicity of the basal ganglia and thalami.');
+  else if (echo.some(e => /Lenticulostriate/.test(e))) F.push('Linear echogenic streaks in the basal ganglia (lenticulostriate vasculopathy).');
+  else if (+o.an_deepgrey === 3) F.push('Asymmetric basal ganglia / thalami.');
+  else if (o.gs_bg === 'pretermBright') F.push('Mildly echogenic basal ganglia, in keeping with prematurity.');
+  else F.push('Basal ganglia and thalami appear unremarkable.');
+  // parenchyma
+  const foc = [r.infarct, ...(o.cysts || []), ...echo.filter(e => /Calcification|Diffusely/.test(e))].filter(Boolean);
+  F.push(foc.length ? `Other parenchymal findings: ${foc.join('; ')}.` : 'No focal parenchymal abnormality identified.');
+  // posterior fossa
+  const mf = win.includes('MF');
+  if (isNV(o, 'cerebellum')) F.push(`Posterior fossa: ${nvTxt(o, 'cerebellum')}.`);
+  else if (r.cbh !== 'none') F.push(`${CBH[r.cbh]}${o.cbhSide ? ' – ' + o.cbhSide.toLowerCase() : ''}.`);
+  else if (+o.an_cerebellum === 2) F.push('Small cerebellum / vermis – possible hypoplasia.');
+  else if (+o.an_cerebellum === 4) F.push('Enlarged cisterna magna.');
+  else F.push(mf ? 'Cerebellum and posterior fossa appear normal on mastoid fontanelle views.' : 'Posterior fossa appears normal through the anterior fontanelle; mastoid views not obtained – small cerebellar haemorrhage cannot be excluded.');
+  // extra-axial
+  if (isNV(o, 'extraaxial')) F.push(`Extra-axial spaces: ${nvTxt(o, 'extraaxial')}.`);
+  else if ((o.extra || []).length) F.push(`${o.extra.join('; ')}.`);
+  else F.push('Extra-axial spaces are normal.');
+  if ((o.cong || []).filter(c => !/corpus callosum/i.test(c)).length) F.push(`Congenital: ${o.cong.filter(c => !/corpus callosum/i.test(c)).join('; ')}.`);
+  if (r.riTxt) F.push(`Doppler: ${r.riTxt}.`);
+  return { tech, findings: F };
+}
+
+function seniorFlags(o, r) {
+  const f = [];
+  if (r.papile) f.push(`Haemorrhage identified (Papile grade ${['', 'I', 'II', 'III', 'IV'][r.papile]})`);
+  if (r.ventZone === 'high') f.push('Ventricular measurements in the high-risk zone');
+  else if (r.ventZone === 'moderate') f.push('Ventricular measurements above the 97th centile');
+  if (o.gs_vent === 'dilated' && !r.anyVentMeasured) f.push('Ventricles look enlarged but have not been measured');
+  measWarnings(o).forEach(w => f.push(w));
+  if (r.devries >= 0.5) f.push('Pathological periventricular echogenicity / cysts');
+  if (r.cbh !== 'none') f.push('Cerebellar haemorrhage');
+  if ((o.echo || []).some(e => /thalamic|Diffusely/.test(e))) f.push('Abnormal basal ganglia / parenchymal echogenicity');
+  if (r.infarct) f.push('Possible infarction');
+  if (r.cong.length) f.push('Possible congenital anomaly');
+  if ((o.extra || []).some(e => /Subdural|Subarachnoid/.test(e))) f.push('Extra-axial collection / haemorrhage');
+  if (r.v3Abn) f.push('Dilated 3rd ventricle');
+  if (+o.an_cerebellum === 4 || +o.an_cerebellum === 2 || r.cmAbn) f.push('Posterior fossa abnormality');
+  if (r.riTxt && !/^Normal/.test(r.riTxt)) f.push('Abnormal Doppler');
+  if (r.notAssessed.length) f.push(`Limited study – ${r.notAssessed.map(x => x.t.toLowerCase()).join(', ')} not adequately assessed`);
+  const missV = VIEW_STEPS.filter(v => o['gv_' + v.id] === 'no').map(v => v.id);
+  if (missV.length) f.push(`Standard views not obtained: ${missV.join(', ')}`);
+  return f;
+}
+
+function measWarnings(o) {
+  const w = [];
+  [['vi', 'VI'], ['ahw', 'AHW'], ['tod', 'TOD']].forEach(([k, L]) => ['R', 'L'].forEach(s => {
+    const v = num(o[k + s]); if (v == null) return;
+    const [lo, hi] = MEAS_RANGE[k];
+    if (v <= 0) w.push(`${L} ${s}: invalid value`);
+    else if (v < lo) w.push(`${L} ${s} ${v} mm is unusually small – check units (mm, not cm) and calliper placement`);
+    else if (v > hi) w.push(`${L} ${s} ${v} mm is unusually large – check units and calliper placement`);
+  }));
+  return w;
+}
+
+/* ========================== Beginner Mode wizard ========================== */
+const WZ_STEPS = ['Patient information', 'Scanning technique', 'Standard views', 'Measurements', 'Findings', 'Impression and report'];
+let wzStep = 0, wzView = 0;
+
+function setK(k, v) {
+  const el = $(`#form [data-k="${k}"], #nmForm [data-k="${k}"]`);
+  if (!el) return;
+  if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? '';
+}
+function setG(g, val, on) {
+  const el = $(`#form [data-g="${g}"][value="${CSS.escape(val)}"]`);
+  if (el) el.checked = !!on;
+}
+function gHas(g, val) { return (S[g] || []).includes(val); }
+
+function applyStructure(key, val, side) {
+  const nvMap = { nv: 'Not visualised', na: 'Not assessed', lim: 'Limited view' };
+  const anOf = { gs_vent: 'ventricles', gs_wm: 'pvwm', gs_cc: 'csp', gs_bg: 'deepgrey', gs_pf: 'cerebellum', gs_ext: 'extraaxial' };
+  if (key === 'gs_gmh') {
+    const s = side; setK('gs_gmh' + s, val);
+    if (nvMap[val]) { setK('ivh' + s, 'none'); setK('vd' + s, false); }
+    else {
+      setK('ivh' + s, { none: 'none', gmh: 'gmh', ivh: 'ivh50', ivhd: 'ivh50plus' }[val]);
+      setK('vd' + s, val === 'ivhd');
+    }
+    const r = $('#form [data-k="gs_gmhR"]').value, l = $('#form [data-k="gs_gmhL"]').value;
+    const nvs = [r, l].find(x => nvMap[x]);
+    setK('an_ctg', nvs ? anIdx('ctg', nvMap[nvs]) : 0);
+    return;
+  }
+  setK(key, val);
+  const an = anOf[key];
+  if (nvMap[val]) { setK('an_' + an, anIdx(an, nvMap[val])); }
+  else setK('an_' + an, 0);
+  if (key === 'gs_vent') setK('an_ventricles', { normal: 0, asym: 2, slit: 3, dilated: 1 }[val] ?? +$('#form [data-k="an_ventricles"]').value);
+  if (key === 'gs_wm') {
+    if (val === 'pve') { setK('pve', 'eq'); setK('pvlCysts', 'none'); }
+    else if (/^cyst/.test(val)) { setK('pve', 'gt'); setK('pvlCysts', { cystL: 'localised', cystE: 'periventricular', cystS: 'subcortical' }[val]); }
+    else { setK('pve', 'none'); setK('pvlCysts', 'none'); }
+  }
+  if (key === 'gs_cc') {
+    setG('cong', 'Agenesis / dysgenesis of corpus callosum', val === 'ccAbn');
+    if (val === 'csp0') setK('an_csp', 2);
+  }
+  if (key === 'gs_bg') {
+    setG('echo', 'Increased thalamic / basal ganglia echogenicity', val === 'bright');
+    setG('echo', 'Lenticulostriate vasculopathy', val === 'lsv');
+    if (val === 'asym') setK('an_deepgrey', 3);
+  }
+  if (key === 'gs_pf') {
+    setK('cbh', ['punctate', 'limited', 'massive'].includes(val) ? val : 'none');
+    if (val === 'small') setK('an_cerebellum', 2);
+    if (val === 'bigCM') setK('an_cerebellum', 4);
+    if (val === 'normalMF') setG('win', 'MF', true);
+  }
+  if (key === 'gs_ext') {
+    setG('extra', 'Enlarged extra-axial space', val === 'wide');
+    setG('extra', 'Subdural haemorrhage / collection', val === 'coll');
+  }
+}
+
+function stepDone(i) {
+  const o = S;
+  if (i === 0) return !!(o.gaW && o.dob && o.scanDate && (o.ind || []).length);
+  if (i === 1) return TECH_CHECK.every(t => o[t[0]] === '1') && !!o.quality;
+  if (i === 2) return VIEW_STEPS.every(v => o['gv_' + v.id]);
+  if (i === 3) return o.wz_meas === 'skip' || ['viR', 'viL'].every(k => num(o[k]) != null);
+  if (i === 4) return STRUCTURES.every(st => st.perSide ? o.gs_gmhR && o.gs_gmhL : o[st.k]) && !!o.wz_other;
+  if (i === 5) return o.wz_done === '1';
+}
+
+function wzProgress() {
+  const n = WZ_STEPS.filter((_, i) => stepDone(i)).length;
+  return `<div class="wz-prog card">
+    <div class="wz-prog-head"><b>EXAMINATION PROGRESS</b><span>${n}/6</span></div>
+    <div class="wz-bar"><span style="width:${n / 6 * 100}%"></span></div>
+    <ol class="wz-steps">${WZ_STEPS.map((t, i) => `<li class="${stepDone(i) ? 'done' : ''} ${i === wzStep ? 'cur' : ''}"><button type="button" data-wzgo="${i}"><span class="dot">${stepDone(i) ? '✓' : i + 1}</span>${t}</button></li>`).join('')}</ol>
+  </div>`;
+}
+
+const inp = (k, label, type = 'text', extra = '') => `<label>${label}<input data-proxy="${k}" type="${type}" value="${esc(S[k] ?? '')}" ${extra}></label>`;
+const choice = (k, val, label, desc, sev, cur, side = '') => `<button type="button" class="opt sev-${sev} ${cur === val ? 'on' : ''}" data-struct="${k}" data-val="${val}" ${side ? `data-side="${side}"` : ''}>
+  <span class="opt-r"></span><span><b>${label}</b>${desc ? `<small>${desc}</small>` : ''}</span></button>`;
+
+function wzFlagsBox() {
+  const f = seniorFlags(S, I);
+  return f.length ? `<div class="senior"><b>⚑ Senior review recommended</b><ul>${f.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+}
+
+function wzStepHTML() {
+  const o = S, a = I.a;
+  switch (wzStep) {
+  case 0: return `
+    <p class="wz-lead">Enter the basic information before starting the examination.</p>
+    <div class="grid">${inp('name', 'Name')}${inp('mrn', 'MRN')}${inp('dob', 'Date of birth', 'date')}${inp('scanDate', 'Scan date', 'date')}
+      ${inp('gaW', 'GA at birth – weeks', 'number', 'inputmode="numeric" min="22" max="44"')}${inp('gaD', '+ days', 'number', 'inputmode="numeric" min="0" max="6"')}
+      ${inp('bw', 'Birth weight (g)', 'number', 'inputmode="numeric"')}</div>
+    <div id="wzAge" class="wz-summary"></div>
+    <div class="sub">Indication (tap all that apply)</div>
+    <div class="chips-wrap">${INDICATIONS.map(([v, t]) => `<button type="button" class="chipb ${gHas('ind', v) ? 'on' : ''}" data-tg="ind" data-v="${v}">${t}</button>`).join('')}</div>`;
+  case 1: return `
+    <p class="wz-lead">Check each item before you start scanning.</p>
+    <div class="checklist">${TECH_CHECK.map(([k, t]) => `<button type="button" class="chk ${o[k] === '1' ? 'on' : ''}" data-tk="${k}"><span class="box">${o[k] === '1' ? '✓' : ''}</span>${t}</button>`).join('')}</div>
+    <div class="grid">${inp('probe', 'Probe used')}${inp('machine', 'Machine')}</div>
+    <div class="sub">Image quality</div>
+    <div class="opts row">${['Optimal', 'Adequate', 'Limited'].map(q => `<button type="button" class="opt ${o.quality === q ? 'on' : ''}" data-set="quality" data-val="${q}"><span class="opt-r"></span><b>${q}</b></button>`).join('')}</div>
+    ${o.quality === 'Limited' ? inp('qualityNote', 'Why is it limited? (e.g. small fontanelle, unsettled baby)') : ''}
+    <details class="tipbox"><summary>Why these settings matter</summary><ul class="tight small"><li>Higher frequency = sharper image but less depth.</li><li>Over-gain hides haemorrhage and creates false bright white matter.</li><li>Pressing hard on the fontanelle changes Doppler values.</li></ul><button type="button" class="btn ghost sm" data-learn="1">Open Learn step: depth & gain</button></details>`;
+  case 2: {
+    const v = VIEW_STEPS[wzView];
+    const list = VIEW_STEPS.map((x, i) => `<button type="button" class="vchip ${o['gv_' + x.id] === 'yes' ? 'ok' : o['gv_' + x.id] === 'no' ? 'no' : ''} ${i === wzView ? 'cur' : ''}" data-vi="${i}">${x.id}</button>`).join('');
+    const extra = EXTRA_VIEWS.map(x => `
+      <details class="card xview"><summary><b>${x.title}</b> <span class="sum ${o['gv_' + x.id] === 'yes' ? 'ok' : ''}">${o['gv_' + x.id] === 'yes' ? 'Done' : o['gv_' + x.id] === 'no' ? 'Skipped' : 'Optional'}</span></summary>
+        <p class="small">${x.why}</p>
+        ${x.img ? `<button type="button" class="img-btn" data-img="${x.img}" data-src="${x.src}" data-fig="${x.fig}" data-t="${esc(x.title)}"><img src="images/${x.img}.jpg" alt="" loading="lazy"><span class="zoom">⤢</span></button>${credit(x.src, x.fig) ? `<div class="credit">${credit(x.src, x.fig)}</div>` : ''}` : ''}
+        <p class="small"><b>Probe:</b> ${x.probe}</p>
+        <div class="sub">Identify</div><ul class="tight small">${x.find.map(t => `<li>${t}</li>`).join('')}</ul>
+        <div class="sub">Check</div><ul class="tight small">${x.check.map(t => `<li>${t}</li>`).join('')}</ul>
+        <div class="vbtns"><button type="button" class="btn ok" data-xv="${x.id}" data-st="yes">✓ Obtained</button><button type="button" class="btn ghost" data-xv="${x.id}" data-st="no">Skip</button></div>
+      </details>`).join('');
+    const done = VIEW_STEPS.filter(x => o['gv_' + x.id]).length;
+    return `
+    <p class="wz-lead">Anterior fontanelle – ${done}/${VIEW_STEPS.length} views recorded. Work through each view; tap a chip to jump.</p>
+    <div class="vchips">${list}</div>
+    <div class="card vcard2">
+      <div class="vhead"><span class="gtag ${v.plane === 'cor' ? 'coronal' : 'sagittal'}">${v.group}</span><h3>${v.title}</h3></div>
+      <button type="button" class="img-btn" data-img="${v.img}" data-src="${v.src}" data-fig="${v.fig}" data-t="${esc(v.title)}"><img src="images/${v.img}.jpg" alt="Reference ${v.title}" loading="lazy"><span class="zoom">⤢</span></button>
+      <div class="credit">Reference image – ${v.panel}${credit(v.src, v.fig) ? ' · ' + credit(v.src, v.fig) : ''}</div>
+      ${v.extra ? `<button type="button" class="link-btn" data-img="${v.extra}" data-src="${v.extra.startsWith('tp') ? 'tp' : 'lc'}" data-fig="${v.extra.startsWith('tp') ? 2 : 0}" data-t="${esc(v.title)} – additional reference">+ another reference image</button>` : ''}
+      <div class="probe-row">${probeSVG(v.plane, v.tilt, v.id)}<div><div class="sub">Probe orientation</div><p class="small">${v.probe}</p></div></div>
+      <div class="sub">Identify these structures</div>
+      <ul class="tight small">${v.find.map(t => `<li>${t}</li>`).join('')}</ul>
+      <div class="sub">Quick checklist</div>
+      <ul class="cl small">${v.check.map(t => `<li>☐ ${t}</li>`).join('')}</ul>
+      <div class="vbtns"><button type="button" class="btn ok" data-vs="yes">✓ Image obtained</button><button type="button" class="btn ghost" data-vs="no">✗ Not obtained</button></div>
+      ${o['gv_' + v.id] ? `<p class="small muted">Recorded: <b>${o['gv_' + v.id] === 'yes' ? 'obtained' : 'not obtained'}</b></p>` : ''}
+    </div>
+    <div class="sub">Additional modules</div>${extra}`;
+  }
+  case 3: return `
+    <p class="wz-lead">Freeze the right image, place callipers as shown, then enter values in millimetres.</p>
+    ${['VI', 'AHW', 'TOD'].map(m => { const c = CALIPER[m], k = m.toLowerCase(); return `
+      <div class="card mcard">
+        <h3>${c.title}</h3><div class="muted small">${c.plane}</div>
+        <details class="calguide"><summary>How to place the callipers</summary>
+          <div class="cal-wrap">${c.svg}</div><ol class="small tight">${c.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+          <button type="button" class="link-btn" data-img="${c.img}" data-src="lc" data-fig="0" data-t="${c.title} – real example">See a real example</button></details>
+        <div class="lr2">${inp(k + 'R', 'Right (mm)', 'number', 'step="0.1" inputmode="decimal"')}${inp(k + 'L', 'Left (mm)', 'number', 'step="0.1" inputmode="decimal"')}</div>
+      </div>`; }).join('')}
+    <div class="grid">${inp('v3', '3rd ventricle (mm) – optional', 'number', 'step="0.1" inputmode="decimal"')}${inp('hc', 'Head circumference (cm)', 'number', 'step="0.1" inputmode="decimal"')}</div>
+    <div id="wzMeasOut"></div>
+    <button type="button" class="chk ${o.wz_meas === 'skip' ? 'on' : ''}" data-measskip="1"><span class="box">${o.wz_meas === 'skip' ? '✓' : ''}</span>Ventricles look normal – measurements not taken this scan</button>`;
+  case 4: return `
+    <p class="wz-lead">Pick the description closest to what you see. If you cannot assess a structure, say so – do not choose "normal".</p>
+    ${STRUCTURES.map(st => {
+      const exBtn = `<button type="button" class="link-btn" data-abn="${st.atlas}">📷 What does abnormal look like?</button>`;
+      const nvRow = side => `<div class="nvrow">${NV_OPTS.map(([v, l]) => `<button type="button" class="nvb ${(side ? o[st.k + side] : o[st.k]) === v ? 'on' : ''}" data-struct="${st.k}" data-val="${v}" ${side ? `data-side="${side}"` : ''}>${l}</button>`).join('')}</div>`;
+      if (st.perSide) return `<div class="card scard"><h3>${st.title}</h3><div class="muted small">Look: ${st.where}</div>${exBtn}
+        <div class="sides">${['R', 'L'].map(sd => `<div><div class="side-h">${sd === 'R' ? 'Right' : 'Left'}</div>
+          <div class="opts">${st.opts.map(([v, l, d, sev]) => choice(st.k, v, l, d, sev, o[st.k + sd], sd)).join('')}</div>
+          <button type="button" class="chk sm ${o['phi' + sd] ? 'on' : ''}" data-phi="${sd}"><span class="box">${o['phi' + sd] ? '✓' : ''}</span>Plus bright area in the white matter beside it (PVHI)</button>
+          ${nvRow(sd)}</div>`).join('')}</div></div>`;
+      return `<div class="card scard"><h3>${st.title}</h3><div class="muted small">Look: ${st.where}</div>${exBtn}
+        <div class="opts">${st.opts.map(([v, l, d, sev]) => choice(st.k, v, l, d, sev, o[st.k])).join('')}</div>
+        ${st.k === 'gs_wm' && o.gs_wm === 'pve' ? inp('pveDays', 'How many days has it been present?', 'number', 'inputmode="numeric"') : ''}
+        ${st.k === 'gs_pf' && ['punctate', 'limited', 'massive'].includes(o.gs_pf) ? `<label>Side<select data-proxy="cbhSide">${['', 'Right hemisphere', 'Left hemisphere', 'Bilateral', 'Vermis'].map(x => `<option ${o.cbhSide === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>` : ''}
+        ${nvRow()}</div>`;
+    }).join('')}
+    <div class="card scard"><h3>Anything else?</h3>
+      <div class="opts row">${choice('wz_other', 'none', 'Nothing else seen', '', 'ok', o.wz_other)}${choice('wz_other', 'yes', 'Yes – record it', '', 'warn', o.wz_other)}</div>
+      ${o.wz_other === 'yes' ? `
+        <div class="sub">Cysts</div><div class="chips-wrap">${['Choroid plexus cyst', 'Subependymal (germinolytic) pseudocyst', 'Connatal (coarctation) cysts', 'Porencephalic cyst', 'Arachnoid cyst'].map(c => `<button type="button" class="chipb ${gHas('cysts', c) ? 'on' : ''}" data-tg="cysts" data-v="${c}">${c}</button>`).join('')}</div>
+        <div class="sub">Other</div><div class="chips-wrap">${['Calcification', 'Diffusely increased parenchymal echogenicity (loss of grey-white differentiation)'].map(c => `<button type="button" class="chipb ${gHas('echo', c) ? 'on' : ''}" data-tg="echo" data-v="${c}">${c.replace(/ \(.*/, '')}</button>`).join('')}</div>
+        <label>Infarction<select data-proxy="infarct">${['', 'Arterial ischaemic stroke – MCA main branch', 'Arterial ischaemic stroke – cortical branch', 'Lenticulostriate (perforator) infarct', 'Watershed injury', 'Venous infarction / sinovenous thrombosis'].map(x => `<option value="${x}" ${o.infarct === x ? 'selected' : ''}>${x || 'None'}</option>`).join('')}</select></label>
+        <div class="sub">Congenital</div><div class="chips-wrap">${['Holoprosencephaly', 'Dandy–Walker malformation', 'Vermian hypoplasia', 'Chiari II malformation', 'Congenital hydrocephalus (e.g. aqueductal stenosis)'].map(c => `<button type="button" class="chipb ${gHas('cong', c) ? 'on' : ''}" data-tg="cong" data-v="${c}">${c.replace(/ \(.*/, '')}</button>`).join('')}</div>
+        <label>Describe briefly<textarea data-proxy="notes" rows="2">${esc(o.notes || '')}</textarea></label>` : ''}
+    </div>
+    <div id="wzFlags5"></div>`;
+  case 5: {
+    const nar = buildNarrative(o, I);
+    return `
+    <div id="wzFlags6"></div>
+    <div class="card rep-prev">
+      <div class="rp-title">NEONATAL CRANIAL ULTRASOUND REPORT</div>
+      <p><b>Technique:</b> ${esc(nar.tech)}</p>
+      <p><b>Findings:</b></p><ul>${nar.findings.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
+      <p><b>Impression:</b></p><div class="imp-box">${esc($('#impression').value).replace(/\n/g, '<br>')}</div>
+      <p><b>Recommendation:</b></p><div class="imp-box">${esc($('#recommendation').value).replace(/\n/g, '<br>')}</div>
+    </div>
+    <div class="grid">${inp('reporter', 'Your name')}${inp('designation', 'Designation')}</div>
+    <div class="vbtns"><button type="button" class="btn ok" data-final="1">${o.wz_done === '1' ? '✓ Reviewed' : 'I have reviewed this report'}</button><button type="button" class="btn ghost" data-goto2="report">Edit / share report →</button></div>
+    <p class="muted small">Decision support only. A senior must verify abnormal or limited studies.</p>`;
+  }
+  }
+}
+
+function wzRender() {
+  const w = $('#wizard'); if (!w || w.hidden) return;
+  w.innerHTML = `${wzProgress()}
+    <div class="card wz-card"><div class="wz-step">STEP ${wzStep + 1} OF 6 · ${WZ_STEPS[wzStep].toUpperCase()}</div><h2>${WZ_STEPS[wzStep]}</h2>${wzStepHTML()}</div>
+    <div class="wz-nav"><button type="button" class="btn ghost" data-wznav="-1" ${wzStep === 0 ? 'disabled' : ''}>‹ Back</button>
+      <button type="button" class="btn" data-wznav="1">${wzStep === 5 ? 'Open report ›' : 'Next: ' + WZ_STEPS[wzStep + 1] + ' ›'}</button></div>`;
+  wzLive();
+}
+
+function wzLive() {
+  const a = I.a;
+  const age = $('#wzAge');
+  if (age) age.innerHTML = `<div><span>Gestational age</span><b>${S.gaW ? `${S.gaW} weeks + ${S.gaD || 0} days` : '–'}</b></div>
+    <div><span>Postnatal age</span><b>${a.pna != null ? 'DOL ' + a.pna : '–'}</b></div>
+    <div><span>PMA today</span><b>${a.pmaTxt}</b></div>
+    <div><span>Birth weight</span><b>${S.bw ? S.bw + ' g' : '–'}</b></div>
+    <div><span>Indication</span><b>${(S.ind || []).length ? esc(indText(S)) : '–'}</b></div>`;
+  const mo = $('#wzMeasOut');
+  if (mo) {
+    const w = measWarnings(S);
+    mo.innerHTML = (w.length ? `<div class="warnbox">${w.map(x => `<div>⚠ ${esc(x)}</div>`).join('')}</div>` : '') +
+      `<div class="card"><h3>Reference for PMA ${a.pmaTxt}</h3>${renderVentTable(I, false)}
+       ${I.ventZone && I.ventZone !== 'normal' ? `<div class="senior"><b>⚑ Senior review recommended</b><div class="small">Measurement above the 97th centile${I.ventZone === 'high' ? ' (high-risk zone)' : ''}. The app does not diagnose or recommend treatment from measurements alone.</div></div>` : ''}
+       <button type="button" class="btn ghost sm" id="wzAddSeries">+ Add to serial PHVD chart</button></div>`;
+    $('#wzAddSeries').onclick = () => { addToSeries(); };
+  }
+  ['#wzFlags5', '#wzFlags6'].forEach(id => { const el = $(id); if (el) el.innerHTML = wzFlagsBox() || (id === '#wzFlags6' ? '<div class="okbox">No senior-review triggers identified.</div>' : ''); });
+  const pg = $('.wz-prog'); if (pg) pg.outerHTML = wzProgress();
+}
+
+function openAbn(id) {
+  const e = ABN_ATLAS.find(x => x.id === id); if (!e) return;
+  const keys = [...e.looks, `Where: ${e.where}`, `Grade: ${e.grade}`, ...e.pitfalls.map(p => 'Pitfall: ' + p), `Senior review: ${e.senior}`];
+  openViewer(e.imgs.map(([img, src, fig, cap]) => ({ img, src, fig, title: `${e.title} – ${cap}`, keys })), 0);
+}
+
+function initWizard() {
+  const w = $('#wizard');
+  const mode = () => settings.mode || 'beginner';
+  const applyMode = () => {
+    $$('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode()));
+    w.hidden = mode() !== 'beginner'; $('#form').hidden = mode() === 'beginner';
+    if (!w.hidden) wzRender();
+  };
+  $$('#modeSeg button').forEach(b => b.onclick = () => { settings.mode = b.dataset.mode; store(LS_SET, settings); applyMode(); window.scrollTo({ top: 0 }); });
+  const act = () => { update(); wzRender(); };
+  w.addEventListener('input', e => {
+    const k = e.target.dataset.proxy; if (!k) return;
+    setK(k, e.target.value); update(); wzLive();
+  });
+  w.addEventListener('change', e => { if (e.target.tagName === 'SELECT' && e.target.dataset.proxy) { setK(e.target.dataset.proxy, e.target.value); act(); } });
+  w.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const d = b.dataset;
+    if (d.wzgo) { wzStep = +d.wzgo; wzRender(); window.scrollTo({ top: 0 }); }
+    else if (d.wznav) {
+      if (+d.wznav > 0 && wzStep === 5) return showTab('report');
+      wzStep = Math.max(0, Math.min(5, wzStep + +d.wznav)); wzRender(); window.scrollTo({ top: 0 });
+    }
+    else if (d.tg) { setG(d.tg, d.v, !gHas(d.tg, d.v)); act(); }
+    else if (d.tk) { setK(d.tk, S[d.tk] === '1' ? '' : '1'); act(); }
+    else if (d.set) { setK(d.set, d.val); act(); }
+    else if (d.vi) { wzView = +d.vi; wzRender(); }
+    else if (d.vs) {
+      const v = VIEW_STEPS[wzView]; setK('gv_' + v.id, d.vs); setG('views', v.id, d.vs === 'yes'); setG('win', 'AF', true);
+      update(); if (wzView < VIEW_STEPS.length - 1) wzView++; wzRender();
+      $('.vcard2')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    else if (d.xv) { setK('gv_' + d.xv, d.st); setG('win', d.xv, d.st === 'yes'); act(); }
+    else if (d.img) openViewer([{ img: d.img, src: d.src, fig: +d.fig, title: d.t, keys: [] }], 0);
+    else if (d.abn) openAbn(d.abn);
+    else if (d.struct) {
+      if (d.struct === 'wz_other') { setK('wz_other', d.val); act(); return; }
+      applyStructure(d.struct, d.val, d.side); act();
+    }
+    else if (d.phi) { setK('phi' + d.phi, !S['phi' + d.phi]); act(); }
+    else if (d.measskip) { setK('wz_meas', S.wz_meas === 'skip' ? '' : 'skip'); act(); }
+    else if (d.final) { setK('wz_done', '1'); act(); }
+    else if (d.goto2) showTab(d.goto2);
+    else if (d.learn) { showTab('guide'); }
+  });
+  applyMode();
+}
+
 /* ---------------- Update cycle ---------------- */
 let saveTimer;
 function update() {
@@ -927,6 +1346,7 @@ function update() {
   if (active === 'interp') { renderInterp(); renderSeries(); }
   if (active === 'report') renderReport();
   if (active === 'mature') renderMaturity();
+  if (active === 'findings' && !$('#wizard').hidden) wzLive();
   clearTimeout(saveTimer); saveTimer = setTimeout(() => store(LS_CASE, S), 300);
 }
 
@@ -936,6 +1356,7 @@ function showTab(t) {
   if (t === 'interp') { renderInterp(); renderSeries(); }
   if (t === 'report') renderReport();
   if (t === 'mature') renderMaturity();
+  if (t === 'findings') wzRender();
   window.scrollTo({ top: 0 });
   document.body.dataset.tab = t;
   try { history.replaceState(null, '', '#' + t); } catch {}
@@ -1023,6 +1444,7 @@ function init() {
   });
 
   update();
+  initWizard();
   const h = location.hash.slice(1);
   showTab(['guide', 'findings', 'interp', 'report', 'mature'].includes(h) ? h : 'findings');
 

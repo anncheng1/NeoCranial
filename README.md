@@ -23,6 +23,18 @@ Offline-capable web app (PWA) for neonatal cranial ultrasound, built for the NIC
    - Each method is shown separately with its source. **No combined GA is generated**; concordance is not claimed.
 4. **Report generator** – formatted A4 report (patient details → recommendation) with auto-generated, editable impression and recommendation. Print / save PDF, copy text, download .txt, save/load case (.json).
 
+## Beginner Mode (default) – guided 6-step examination
+Designed for junior doctors with little or no CUS experience. Switch to **Experienced – full form** at any time; both modes share the same record.
+
+1. **Patient information** – GA, DOL, PMA and birth weight calculated and summarised; tap-to-select indication.
+2. **Scanning technique** – pre-scan checklist (baby, gel, probe, preset, gain, labelling) and image quality.
+3. **Standard views** – C1–C6, S1, S2/S3 right & left, each with reference image, probe-orientation drawing, structures to identify, quick checklist and *Image obtained / Not obtained*. Mastoid and posterior fontanelle as optional modules.
+4. **Measurement assistant** – animated calliper guides for VI, AHW, TOD; unit/plausibility checks; PMA-specific reference zones; add to serial PHVD chart; senior-review flag. The app does not diagnose or recommend treatment from measurements alone.
+5. **Findings** – structure-by-structure choices with plain-language explanations (ventricles, GMH-IVH each side ± PVHI, white matter, corpus callosum, basal ganglia/thalami, posterior fossa, extra-axial). Every structure has **Not visualised / Not assessed / Limited view** – normal is never forced.
+6. **Impression and report** – narrative report ("No significant abnormality detected in the visualised structures"), limitations stated, senior-review triggers listed.
+
+**Abnormality Recognition Atlas** (Guide → Atlas): for each abnormality – images, where to look, what it looks like, how to grade, common pitfalls, when to seek senior review.
+
 ## iPhone use
 - Bottom tab bar, large touch targets, no zoom-on-focus.
 - **✓ Normal scan** fills a normal study in one tap; section headers show status (e.g. *Grade III*, *High risk*).
